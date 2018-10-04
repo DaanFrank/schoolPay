@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+# Foundations of Python Network Programming, Third Edition
+# https://github.com/brandon-rhodes/fopnp/blob/m/py3/chapter03/tcp_sixteen.py
+# Simple TCP client and server that send and receive 16 octets
+
+import argparse, socket, hashlib
+
+def recvall(sock, length):
+    data = b''
+    while len(data) < length:
+        more = sock.recv(length - len(data))
+        if not more:
+            raise EOFError('was expecting %d bytes but only received'
+                           ' %d bytes before the socket closed'
+                           % (length, len(data)))
+        data += more
+    return data
+
+def server(interface, port):
+    listeningSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listeningSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listeningSock.bind((interface, port))
+    listeningSock.listen(1)
+    print('Listening at', listeningSock.getsockname())
+    while True:
+        print('等待接受一個新的連結')
+        sock, sockname = listeningSock.accept()
+        print('我們接受一個連結自', sockname)
+        print('  Socket name:', sock.getsockname())
+        print('  Socket peer:', sock.getpeername())
+        massage = sock.recv(8192)
+        f = open('save.txt','w')
+        f.write('gyuhgjhglkh')
+        f.close
+        l = len(massage)
+        l = bytes(str(l),'utf-8')
+        sock.sendall(l)
+        m = sock.recv(64).decode('utf8')
+        if m == hashlib.sha224(massage).hexdigest() :
+            print('檔案正確')
+        else :
+            print('檔案錯誤')
+        sock.close()
+        print('  Reply sent, socket closed')
+
+def client(host, port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((host, port))
+    print('Client has been assigned socket name', sock.getsockname())
+    a = open('ch03_tcp_sixteen.py','r')
+    a = bytes(a.read(),'utf8')
+    sock.sendall(a)
+    reply = sock.recv(16).decode('utf8')
+    print('The server said The file size is', reply,'bytes.')
+    print('[SHA256]')
+    m = hashlib.sha224(a).hexdigest()
+    print(m)
+    m = bytes(m,'utf8')
+    sock.sendall(m)
+    sock.close()
