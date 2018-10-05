@@ -3,4 +3,11 @@
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
+    <string name="account">帳號</string>
+    <string name="passWord">密碼</string>
+    <string name="login">登入</string>
+    <string name="regist">註冊</string>
+    <string name="confirm">確定</string>
+    <string name="passWord_confirm">確認密碼</string>
+    <string name="email">信箱</string>
 </resources>
