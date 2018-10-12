@@ -10,4 +10,7 @@
     <string name="confirm">確定</string>
     <string name="passWord_confirm">確認密碼</string>
     <string name="email">信箱</string>
+    <string name="food1">肉粽</string>
+    <string name="food2">碗粿</string>
+    <string name="food3">魚丸羹</string>
 </resources>
