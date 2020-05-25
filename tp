@@ -1,0 +1,2831 @@
+<?php
+  @session_start();
+  require_once("include/header.php");
+  
+	if($_SESSION["SYSTEM_USERID"] == "" || $_SESSION["SYSTEM_DEP"] == ""){
+?>
+	<script type='text/javascript'>
+		alert("Time out");
+			window.open("http://f12altf01:8888/eds2/hr/index.php",'_self');
+	</script>
+<?php
+	}
+
+
+date_default_timezone_set("Asia/Taipei");
+?>
+<!--CSS-->
+	<!--<link rel="stylesheet" href="css/fm.datetator.jquery.css"></link>-->
+	<link rel="stylesheet" href="css/button.css"></link>
+	<!--<link rel="stylesheet" href="css/bootstrap.min.css">-->
+	<link rel="stylesheet" href="css/jquery.dataTables.css"></link>
+	<link rel="stylesheet" href="css/angular-datatables.css"></link>
+
+	<link href="css/bootstrap-select.min.css" rel="stylesheet" ></link>
+	<link href="css/jquery.multiselect.css" rel="stylesheet" ></link>
+
+	<script src="js/angular.min.js"></script>
+	<script src="js/bootstrap-waitingfor.js"></script>
+	<script src="js/fm.datetator.jquery.js"></script>
+	<!--<script src="js/zingchart.min.js"></script>-->
+	<script src="https://cdn.zingchart.com/zingchart.min.js"></script>
+	<!--<script src="js/bootstrap.min.js"></script>-->
+	<script src="js/angular-datatables.min.js"></script>
+	<script src="js/jquery.dataTables.min.js"></script>
+
+	<script src="js/bootstrap-select.min.js"></script>
+	<script src="js/jquery.multiselect.js"></script>
+
+	<script src="js/sweetalert.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="css/sweetalert.css">
+
+	<link rel="stylesheet" type="text/css" href="plugins/daterangepicker/daterangepicker.css">
+	<script src="plugins/daterangepicker/moment.js"></script>
+	<script src="plugins/daterangepicker/daterangepicker.js"></script>
+	
+	<script src="js/dataTables.buttons.min.js"></script>
+	
+	<script src="js/buttons.colVis.min.js"></script>
+	<script src="js/buttons.flash.min.js"></script>
+	<script src="js/buttons.html5.min.js"></script>
+	<script src="js/buttons.print.min.js"></script>
+
+	<script src="js/angular-datatables.buttons.min.js"></script>
+
+
+<script type='text/javascript'>
+	var app = angular.module("app",['datatables', 'datatables.buttons']);
+
+	app.controller("MntCtrl",['$http','DTOptionsBuilder','DTColumnDefBuilder',function($http,DTOptionsBuilder,DTColumnDefBuilder){
+		var self            = this;
+		self.url            = "API/throughput_api.php";
+		self.wph_table_type = "KSCAN";
+
+		self.COM_TYPE       = "1";
+		self.COM_FACTOR     = "WPH";
+
+		self.dtOptions = DTOptionsBuilder.newOptions()
+		.withOption('order', [[0, 'asc']])
+			// .withPaginationType('full_numbers')
+			.withDisplayLength(100)
+			.withDOM('B')
+		.withButtons([
+			'csv',
+			'copy',
+			'print'
+    	]);
+		self.dtColumnDefs = [
+			// DTColumnDefBuilder.newColumnDef(2),
+			// DTColumnDefBuilder.newColumnDef(7).notVisible()
+			// DTColumnDefBuilder.newColumnDef(5).notSortable()
+		];
+		self.dtOptions_COMBINE = DTOptionsBuilder.newOptions()
+		.withOption('order', [[0, 'asc']])
+			// .withPaginationType('full_numbers')
+			.withDisplayLength(100)
+			.withDOM('B')
+		.withButtons([
+			'csv',
+			'copy',
+			'print'
+    	]);
+		self.dtColumnDefs_COMBINE = [
+			// DTColumnDefBuilder.newColumnDef(2),
+			// DTColumnDefBuilder.newColumnDef(7).notVisible()
+			// DTColumnDefBuilder.newColumnDef(5).notSortable()
+		];
+		self.dtOptions_chart = DTOptionsBuilder.newOptions()
+			.withOption('order', [[0, 'desc']])
+			.withOption('lengthChange', false)
+			.withPaginationType('full_numbers')
+			.withDisplayLength(10)
+			.withDOM('fltrip');
+		self.dtColumnDefs_chart = [
+			// DTColumnDefBuilder.newColumnDef(2),
+			// DTColumnDefBuilder.newColumnDef(7).notVisible()
+			// DTColumnDefBuilder.newColumnDef(5).notSortable()
+		];
+
+		self.Get_Tool_Data_YS = function(){
+			var param = {
+				'func'    : 'Get_Tool_Data_YS',
+			};
+
+			return new Promise( function(resolve, reject){
+				$http({
+					method    : "POST",
+					dataType  : "JSON",
+					url       : self.url,
+					data      : param
+				}).success(function(data){
+					self.tool_list_YS = data;
+
+				//  console.log("tool_list_YS:",data);
+					resolve(1);
+				}).error(function(jqXHR, exception){
+					display_error(jqXHR, exception);
+				});
+			});
+		}
+		self.Get_Tool_Data_ALL = function(){
+			var param = {
+				'func'    : 'Get_Tool_Data_ALL',
+			};
+
+			return new Promise( function(resolve, reject){
+				$http({
+					method    : "POST",
+					dataType  : "JSON",
+					url       : self.url,
+					data      : param
+				}).success(function(data){
+					self.tool_list = data;
+
+				//  console.log("tool_list:",data);
+					resolve(1);
+				}).error(function(jqXHR, exception){
+					display_error(jqXHR, exception);
+				});
+			});
+		}
+		self.Get_Tool_Data_FOR_BARCTK = function(){
+			var param = {
+				'func'    : 'Get_Tool_Data_FOR_BARCTK',
+			};
+
+			return new Promise( function(resolve, reject){
+				$http({
+					method    : "POST",
+					dataType  : "JSON",
+					url       : self.url,
+					data      : param
+				}).success(function(data){
+					self.tool_list_BARCTK = data;
+
+					console.log("tool_list_BARCTK:",data);
+					resolve(1);
+				}).error(function(jqXHR, exception){
+					display_error(jqXHR, exception);
+				});
+			});
+		}
+		self.Get_Alarm_Code = function(){
+			var param = {
+				'func'    : 'Get_Alarm_Code',
+				};
+
+			return new Promise( function(resolve, reject){
+				$http({
+					method    : "POST",
+					dataType  : "JSON",
+					url       : self.url,
+					data      : param
+				}).success(function(data){
+					self.alm_list = data;
+				//  console.log("alm_list:",data);
+					resolve(1);
+				}).error(function(jqXHR, exception){
+					display_error(jqXHR, exception);
+				});
+			});
+		}
+		self.init = function(){
+			self.Get_Tool_Data_ALL().then(function(){
+				$('#tool').multiselect({
+					columns  : 5,
+					search   : true,
+					selectAll: true,
+					texts    : {
+						placeholder: 'Select Tool',
+						search     : 'Search Tool'
+					}
+				});	
+				$('#tool2').multiselect({
+					columns  : 5,
+					search   : true,
+					texts    : {
+						placeholder: 'Select Tool (max 3)',
+						search     : 'Search Tool'
+					},
+					onOptionClick: function( element, option ) {
+						var maxSelect = 3;
+						// too many selected, deselect this option
+						if( $(element).val().length > maxSelect ) {
+							if( $(option).is(':checked') ) {
+								var thisVals = $(element).val();
+
+								thisVals.splice(
+									thisVals.indexOf( $(option).val() ), 1
+								);
+
+								$(element).val( thisVals );
+
+								$(option).prop( 'checked', false ).closest('li')
+									.toggleClass('selected');
+							}
+						}
+						// max select reached, disable non-checked checkboxes
+						else if( $(element).val().length == maxSelect ) {
+							$(element).next('.ms-options-wrap')
+								.find('li:not(.selected)').addClass('disabled')
+								.find('input[type="checkbox"]')
+									.attr( 'disabled', 'disabled' );
+						}
+						// max select not reached, make sure any disabled
+						// checkboxes are available
+						else {
+							$(element).next('.ms-options-wrap')
+								.find('li.disabled').removeClass('disabled')
+								.find('input[type="checkbox"]')
+									.removeAttr( 'disabled' );
+						}
+					}
+				});
+				$('#tool3').multiselect({
+					columns  : 5,
+					search   : true,
+					texts    : {
+						placeholder: 'Select Tool (max 1)',
+						search     : 'Search Tool'
+					},
+					onOptionClick: function( element, option ) {
+						var maxSelect = 1;
+
+						if( $(element).val() == null ) {
+
+							$(element).next('.ms-options-wrap')
+								.find('li.disabled').removeClass('disabled')
+								.find('input[type="checkbox"]')
+									.removeAttr( 'disabled' );
+
+
+						}
+						// max select not reached, make sure any disabled
+						// checkboxes are available
+						else if($(element).val().length == maxSelect){
+							
+							$(element).next('.ms-options-wrap')
+								.find('li:not(.selected)').addClass('disabled')
+								.find('input[type="checkbox"]')
+									.attr( 'disabled', 'disabled' );
+						}
+					}
+				});
+				$('#tool4').multiselect({
+					columns  : 5,
+					search   : true,
+					selectAll: true,
+					texts    : {
+						placeholder: 'Select Tool',
+						search     : 'Search Tool'
+					}
+				});	
+				$('#tool6').multiselect({
+					columns  : 3,
+					search   : true,
+					selectAll: true,
+					texts    : {
+						placeholder: 'Select Tool',
+						search     : 'Search Tool'
+					}
+				});	
+			});
+			self.Get_Alarm_Code().then(function(){
+				$('#alm').multiselect({
+					columns  : 1,
+					search   : true,
+					selectAll: true,
+					texts    : {
+						placeholder: 'Select Alarm',
+						search     : 'Search Alarm'
+					}
+				});	
+				$('#alm2').multiselect({
+					columns  : 1,
+					search   : true,
+					selectAll: true,
+					texts    : {
+						placeholder: 'Select Alarm',
+						search     : 'Search Alarm'
+					}
+				});	
+				$('#alm4').multiselect({
+					columns  : 1,
+					search   : true,
+					selectAll: true,
+					texts    : {
+						placeholder: 'Select Alarm',
+						search     : 'Search Alarm'
+					}
+				});	
+				$('#alm6').multiselect({
+					columns  : 2,
+					search   : true,
+					selectAll: true,
+					texts    : {
+						placeholder: 'Select Alarm',
+						search     : 'Search Alarm'
+					}
+				});
+			});
+			self.Get_Tool_Data_YS().then(function(){
+				$('#tool5').multiselect({
+					columns  : 5,
+					search   : true,
+					texts    : {
+						placeholder: 'Select Tool (max 1)',
+						search     : 'Search Tool'
+					},
+					onOptionClick: function( element, option ) {
+						var maxSelect = 1;
+
+						if( $(element).val() == null ) {
+
+							$(element).next('.ms-options-wrap')
+								.find('li.disabled').removeClass('disabled')
+								.find('input[type="checkbox"]')
+									.removeAttr( 'disabled' );
+						}
+						// max select not reached, make sure any disabled
+						// checkboxes are available
+						else if($(element).val().length == maxSelect){
+							
+							$(element).next('.ms-options-wrap')
+								.find('li:not(.selected)').addClass('disabled')
+								.find('input[type="checkbox"]')
+									.attr( 'disabled', 'disabled' );
+						}
+					}
+				});
+				$('#tool8').multiselect({
+					columns  : 2,
+					search   : true,
+					texts    : {
+						placeholder: 'Select Tool (max 1)',
+						search     : 'Search Tool'
+					},
+					onOptionClick: function( element, option ) {
+						var maxSelect = 1;
+						
+						if( $(element).val() == null ) {
+
+							$(element).next('.ms-options-wrap')
+								.find('li.disabled').removeClass('disabled')
+								.find('input[type="checkbox"]')
+									.removeAttr( 'disabled' );
+						}
+						// max select not reached, make sure any disabled
+						// checkboxes are available
+						else if($(element).val().length == maxSelect){
+							$(element).next('.ms-options-wrap')
+								.find('li:not(.selected)').addClass('disabled')
+								.find('input[type="checkbox"]')
+									.attr( 'disabled', 'disabled' );
+
+							self.GET_COM_PPID($(option).val()).then(function(){
+								$('#COM_PPID').multiselect('reload');
+							});
+							console.log($(option).val());
+						}
+					}
+				});
+			});
+			self.Get_Tool_Data_FOR_BARCTK().then(function(){
+				$('#tool7').multiselect({
+					columns  : 2,
+					search   : true,
+					texts    : {
+						placeholder: 'Select Tool (max 1)',
+						search     : 'Search Tool'
+					},
+					onOptionClick: function( element, option ) {
+						var maxSelect = 1;
+						
+						if( $(element).val() == null ) {
+							$(element).next('.ms-options-wrap')
+								.find('li.disabled').removeClass('disabled')
+								.find('input[type="checkbox"]')
+									.removeAttr( 'disabled' );
+						}
+						// max select not reached, make sure any disabled
+						// checkboxes are available
+						else if($(element).val().length == maxSelect){
+							$(element).next('.ms-options-wrap')
+								.find('li:not(.selected)').addClass('disabled')
+								.find('input[type="checkbox"]')
+									.attr( 'disabled', 'disabled' );
+							self.GET_COM_PPID($(option).val()).then(function(){
+								$('#COM_PPID').multiselect('reload');
+							});
+							console.log($(option).val());
+						}
+					}
+				});
+			});
+			$('#COM_PPID').multiselect({
+				columns  : 1,
+				search   : true,
+				texts    : {
+					placeholder: 'Select Recipe (max 1)',
+					search     : 'Search Recipe'
+				},
+				onOptionClick: function( element, option ) {
+					var maxSelect = 1;
+					
+					if( $(element).val() == null ) {
+						$(element).next('.ms-options-wrap')
+							.find('li.disabled').removeClass('disabled')
+							.find('input[type="checkbox"]')
+								.removeAttr( 'disabled' );
+					}
+					// max select not reached, make sure any disabled
+					// checkboxes are available
+					else if($(element).val().length == maxSelect){
+						$(element).next('.ms-options-wrap')
+							.find('li:not(.selected)').addClass('disabled')
+							.find('input[type="checkbox"]')
+								.attr( 'disabled', 'disabled' );
+						
+						if(self.COM_TYPE == '2'){
+							TOOL = $('#tool8').val();
+							self.GET_COM_PPID_TRACK($(option).val(),TOOL[0]).then(function(){
+								$('#COM_PPID_TRACK').multiselect('reload');
+							});
+						} else {
+							self.GET_COM_TOOL($(option).val(),"",self.COM_TYPE).then(function(){
+								$('#COM_TOOL').multiselect('reload');
+							});
+						}
+						
+
+						console.log($(option).val());
+					}
+				}
+			});
+			$('#COM_TOOL').multiselect({
+				columns  : 1,
+				search   : true,
+				selectAll: true,
+				texts    : {
+					placeholder: 'Select Tool',
+					search     : 'Search Tool'
+				}
+			});	
+			$('#COM_PPID_TRACK').multiselect({
+				columns  : 1,
+				search   : true,
+				texts    : {
+					placeholder: 'Select TRACK Recipe (max 1)',
+					search     : 'Search TRACK Recipe'
+				},
+				onOptionClick: function( element, option ) {
+					var maxSelect = 1;
+					
+					if( $(element).val() == null ) {
+						$(element).next('.ms-options-wrap')
+							.find('li.disabled').removeClass('disabled')
+							.find('input[type="checkbox"]')
+								.removeAttr( 'disabled' );
+					}
+					// max select not reached, make sure any disabled
+					// checkboxes are available
+					else if($(element).val().length == maxSelect){
+						$(element).next('.ms-options-wrap')
+							.find('li:not(.selected)').addClass('disabled')
+							.find('input[type="checkbox"]')
+								.attr( 'disabled', 'disabled' );
+						SCN_RECIPE = $('#COM_PPID').val();
+						self.GET_COM_TOOL(SCN_RECIPE[0],$(option).val(),self.COM_TYPE).then(function(){
+							$('#COM_TOOL').multiselect('reload');
+						});
+						console.log($(option).val());
+					}
+				}
+			});
+		}
+		self.Draw = function(INDEX){
+			waitingDialog.show("Getting Data...");
+			COM_TYPE = "";
+			COM_OPTION1 = "";
+			COM_OPTION2 = "";
+			COM_OPTION3 = "";
+
+			tool_string = "";
+			alm_string = "";
+			tool_num = 0;
+			alm_num = 0;
+			switch(INDEX){
+				case '0':
+					tool_string = $('#tool').val().join(',');
+					alm_string = $('#alm').val().join(',');
+					tool_num = $('#tool :selected').length;
+					alm_num = $('#alm :selected').length;
+					
+				break;
+				case '1':
+					tool_string = $('#tool2').val().join(',');
+					alm_string = $('#alm2').val().join(',');
+					tool_num = $('#tool2 :selected').length;
+					alm_num = $('#alm2 :selected').length;
+				break;
+				case '2':
+					tool_string = $('#tool3').val().join(',');
+					tool_num = $('#tool3 :selected').length;
+					self.TRACK_WPH_TOOL_NAME = tool_string;
+				break;
+				case '3':
+					tool_string = $('#tool4').val().join(',');
+					alm_string = $('#alm4').val().join(',');
+					tool_num = $('#tool4 :selected').length;
+					alm_num = $('#alm4 :selected').length;
+				break;
+				case '4':
+					tool_string = $('#tool5').val().join(',');
+					tool_num = $('#tool5 :selected').length;
+					self.SCN_WPH_TOOL_NAME = tool_string;
+				break;
+				case '5':
+					tool_string = $('#tool6').val().join(',');
+					alm_string = $('#alm6').val().join(',');
+					tool_num = $('#tool6 :selected').length;
+					alm_num = $('#alm6 :selected').length;
+				break;
+				case '6':
+
+					COM_TYPE = self.COM_TYPE;
+					COM_OPTION1 = $('#COM_PPID').val().join(',');
+					COM_OPTION2 = self.COM_FACTOR;
+					
+					tool_string = $('#COM_TOOL').val().join(',');
+					tool_num = $('#COM_TOOL :selected').length;
+
+					if(COM_TYPE == '2')
+						COM_OPTION3 = $('#COM_PPID_TRACK').val().join(',');
+					
+
+				break;
+				case '7':
+					switch(self.wph_table_type){
+						case 'ASCAN_DRY':
+							COM_TYPE = 'ASCAN';
+							COM_OPTION1 = 'DRY';
+							tool_num = 2;
+						break;
+						case 'ASCAN_IMM':
+							COM_TYPE = 'ASCAN';
+							COM_OPTION1 = 'IMM';
+							tool_num = 2;
+						break;
+						case 'KSCAN':
+							COM_TYPE = 'KSCAN';
+							tool_num = 2;
+						break;
+						default:
+							COM_TYPE = self.wph_table_type;
+							tool_num = 1;
+						break;
+					}
+					
+				break;
+                case '9':
+					tool_string = $('#tool_box').val().join(',');
+					alm_string = $('#alm_box').val().join(',');
+					tool_num = $('#tool_box :selected').length;
+					alm_num = $('#alm_box :selected').length;
+					
+				break;
+			}
+		
+			var param = {
+				'func'    : 'Draw',
+				'tool_string'    : tool_string,
+				'alm_string'    : alm_string,
+				'INDEX' : INDEX,
+				'COM_TYPE' : COM_TYPE,
+				'COM_OPTION1' : COM_OPTION1,
+				'COM_OPTION2' : COM_OPTION2,
+				'COM_OPTION3' : COM_OPTION3,
+				'DATE' : self["reservation"+INDEX]
+				
+			 };
+
+			 return new Promise( function(resolve, reject){
+				 $http({
+					 method    : "POST",
+					 dataType  : "JSON",
+					 url       : self.url,
+					 data      : param
+				 }).success(function(data){
+					self.DrawData = data;
+					self.Chart(INDEX,data,tool_num,alm_num);
+
+
+					 console.log("Draw:",self.DrawData);
+					//  resolve(1);
+					waitingDialog.hide();
+				 }).error(function(jqXHR, exception){
+					 display_error(jqXHR, exception);
+				 });
+			 });
+
+
+
+			
+			
+		}
+		self.Chart = function(INDEX,data,tool_num,alm_num){
+			var gui = {
+				"behaviors":[
+					{
+						"id": "DownloadSVG",
+						"enabled": "none"
+					},
+					{
+						"id": "ViewSource",
+						"enabled": "none"
+					},
+					{
+						"id": "HideGuide",
+						"enabled": "none"
+					},
+					{
+						"id": "FullScreen",
+						"enabled": "all"
+					},
+					{
+						"id": "ShowLogScale",
+						"enabled": "all"
+					}
+				],
+				contextMenu: {
+					alpha: 0.9,
+					button: {
+						visible: true
+					},
+					docked: true,
+					item: {
+						textAlpha: 1
+					},
+					position: 'right'
+					}
+			};
+			var legend = {
+				"layout": "float",
+				"background-color": "none",
+				"border-width": 0,
+				"shadow": 0,
+				"align": "center",
+				"adjust-layout": true,
+				"toggle-action": "remove",
+				"item": {
+					"padding": 7,
+					"marginRight": 17,
+					"cursor": "hand"
+				}
+			};
+			var borderColor  = '#cccccc';
+			var borderRadius = '2px';
+			var borderWidth  = '1px';
+			var plot = {
+				aspect: 'segmented',
+				marker:{
+					visible:false
+				}
+			};
+			var scaleX_item = {
+				"font-angle"	: 90,
+				"font-size"		: "10px",
+				"color"			: "#000"
+			};
+			var scaleX_DATE = {
+				itemsOverlap: true,
+				"item":scaleX_item,
+				zooming: true,
+				"max-items":50,
+				values: data['DATE']
+			};
+			var scaleX_LotStartTime = {
+				itemsOverlap: true,
+				"item":scaleX_item,
+				zooming: true,
+				"max-items":50,
+				values: data['LotStartTime']
+			};
+			var plotarea = {
+				margin: 'dynamic'
+			};
+			var crosshairX = {
+				lineColor: '#555',
+				marker: {
+					borderColor: '#fff',
+					borderWidth: '1px',
+					size: '5px'
+				},
+				plotLabel: {
+					backgroundColor: '#fff',
+					borderRadius: '2px',
+					borderWidth: '2px',
+					multiple: true,
+					alpha: 0.8,
+					text: '<b style="color:%color">%plot-text:</b> %node-value'
+				}
+			};
+			switch(INDEX){
+				// MUTIPLE ALARM
+				case '0':
+					var chartData0 = {
+						graphset: [
+							{
+							// timezone: 8,
+							type: 'line',
+							borderColor: borderColor,
+							borderRadius: borderRadius,
+							borderWidth: borderWidth,
+
+							title: {
+								text: 'Multiple Tool Alarm Time',
+								adjustLayout: true,
+								marginTop: '20px'
+							},
+							"legend": legend,
+							plot: plot,
+							plotarea: plotarea,
+							scaleX: scaleX_DATE,
+							scaleY: {
+								guide: {
+									lineStyle: 'solid'
+								},
+								label: {
+									text: 'Lost time (mins)'
+								},
+								zooming: true,
+							},
+							crosshairX: crosshairX,
+							tooltip: {
+								visible: false
+							},
+							preview: {
+								adjustLayout: true,
+								live: true
+							},
+							series: [
+								{
+								values: [], // empty, needed for scaleY
+								legendItem: {
+									visible: false
+								}
+								}
+							]
+							}
+						],
+						"gui":gui,
+					};
+					zingchart.render({ 
+						id:'chartDiv0',
+						data:chartData0,
+						height:600,
+						width:"96%"
+					});
+					var key = Object.keys(data);
+					// console.log(key);
+					var count = Object.keys(data).length - 1;
+					for (let q = 0; q < count; q++) {
+						zingchart.exec('chartDiv0', 'addplot', {
+							data: {
+								values: data[key[q]].map(Number),
+								text: key[q],
+								'legend-marker': {
+									type: "circle",
+									// 'background-color': "#fce9e9",
+									// 'border-color': "#D31E1E",
+									'border-width':1,
+									'show-line': true,
+								}
+							}
+						});
+					};
+				break;
+				// SINGLE ALARM
+				case '1':
+					var chartData1 = {
+						graphset: [
+							{
+								// timezone: 8,
+								type: 'mixed',
+								borderColor: borderColor,
+								borderRadius: borderRadius,
+								borderWidth: borderWidth,
+
+								title: {
+									text: 'Tool All Alarm Time',
+									adjustLayout: true,
+									marginTop: '20px'
+								},
+								"legend": legend,
+								plot: plot,
+								plotarea: plotarea,
+								scaleX: scaleX_DATE,
+								scaleY: {
+									guide: {
+										lineStyle: 'solid'
+									},
+									label: {
+										text: 'Lost time ( mins )'
+									},
+									zooming: true,
+									minValue: 'auto',
+								},
+								scaleY2: {
+									guide: {
+										lineStyle: 'solid'
+									},
+									// offsetStart : '50%',
+									label: {
+										text: 'Pcs'
+									},
+									// zooming: true,
+								},
+								crosshairX: crosshairX,
+								tooltip: {
+									visible: false
+								},
+								preview: {
+									adjustLayout: true,
+									live: true
+								},
+								series: [
+									{
+										values: [], // empty, needed for scaleY
+										legendItem: {
+											visible: false
+										}
+									}
+								]
+							}
+						],
+						"gui":gui,
+					};
+					zingchart.render({ 
+						id:'chartDiv1',
+						data:chartData1,
+						height:800,
+						width:"96%"
+					});
+					var key   = Object.keys(data);
+					var count = Object.keys(data).length - 1; //[0]=DATE [1] = DOWNTIME [2] = ALL_MOVE
+					
+					for(let k = 0 ; k < tool_num ; k++){
+						var tmp = 0 ;
+						for (let q = k*(alm_num+1); q < k*(alm_num+1)+alm_num; q++) {
+							zingchart.exec('chartDiv1', 'addplot', {
+								data: {
+									type: 'bar',
+									stacked: true,
+									scales: "scaleX,scaleY",
+									values: data[key[q]].map(Number),
+									text: key[q],
+									stack: k,
+									'legend-marker': {
+										type: "square",
+										// 'background-color': "#fce9e9",
+										// 'border-color': "#D31E1E",
+										'border-width':1,
+										'show-line': true,
+									}
+								}
+							});
+							tmp = q ;
+						}
+						// move
+						zingchart.exec('chartDiv1', 'addplot', {
+							data: {
+								type: 'line',
+								scales: "scaleX,scaleY2",
+								values: data[key[++tmp]].map(Number),
+								text: key[tmp],
+								'legend-marker': {
+									type: "circle",
+									// 'background-color': "#fce9e9",
+									// 'border-color': "#D31E1E",
+									'border-width':1,
+									'show-line': true,
+								}
+							}
+						});
+					}
+
+				break;
+				// TRACK WPH
+				case '2':
+					var chartData2 = {
+						graphset: [
+							{
+							// timezone: 8,
+							type: 'line',
+							borderColor: borderColor,
+							borderRadius: borderRadius,
+							borderWidth: borderWidth,
+
+							title: {
+								text: self.TRACK_WPH_TOOL_NAME + ' - WPH',
+								adjustLayout: true,
+								marginTop: '20px'
+							},
+							"legend": legend,
+							plot: plot,
+							plotarea: plotarea,
+							scaleX: scaleX_LotStartTime,
+							scaleY: {
+								guide: {
+									lineStyle: 'solid'
+								},
+								label: {
+									text: 'Pcs '
+								},
+								zooming: true,
+								"markers":[
+								{
+									"type":"line",
+									"range":[data['AVG']],
+									"value-range":true,
+									"line-color":"#0000cc",
+									"line-width":2,
+									"line-style":"dashed",//solid f58f0d
+									"alpha":0.5,
+									placement : "top",
+									"label":{
+										"text":"Avg: "+data['AVG'],
+										"font-color":"#0000cc",
+										"font-weight":"bold",
+										"font-size":14,
+										"callout":true,
+										"callout-position":"left",
+										"label-placement" : "auto",
+										offsetX: 80,
+									},
+								},{
+									"type":"line",
+									"range":[data['WPH_SPEC']],
+									"value-range":true,
+									"line-color":"#ff0000",
+									"line-width":2,
+									"line-style":"dashed",//solid
+									"alpha":0.5,
+									placement : "top",
+									"label":{
+										"text":"SPEC: "+data['WPH_SPEC'],
+										"font-color":"#ff0000",
+										"font-weight":"bold",
+										"font-size":14,
+										"callout":true,
+										"callout-position":"left",
+										"label-placement" : "auto",
+									},
+								}],
+								minValue: 'auto',
+							},
+							crosshairX: {
+								lineColor: '#555',
+								marker: {
+									borderColor: '#fff',
+									borderWidth: '0px',
+									size: '5px'
+								},
+								scaleLabel:{
+									fontAngle : 90,
+									offsetY : '60px',
+									callout : false
+								},
+								plotLabel: {
+									backgroundColor: '#fff',
+									borderRadius: '2px',
+									borderWidth: '2px',
+									multiple: true,
+									alpha: 0.8,
+									text: '<b style="color:%color">%plot-text:</b> %node-value<br><b style="color:%color">LotName:</b> %data-parameter1<br><b style="color:%color">TRACK_Recipe:</b> %data-parameter2'
+								}
+							},
+							tooltip: {
+								visible: false
+							},
+							preview: {
+								adjustLayout: true,
+								live: true
+							},
+							series: [
+								{
+									values: data['WPR'].map(Number),
+									text: 'WPH',
+									"data-parameter1" : data['LotName'],
+									"data-parameter2" : data['FlwRcpName'],
+									'legend-marker': {
+										type: "circle",
+										'border-width':1,
+										'show-line': true,
+									}
+								}
+							]
+							}
+						],
+						"gui":gui,
+					};
+					zingchart.render({ 
+						id:'chartDiv2',
+						data:chartData2,
+						height:600,
+						width:"96%"
+					});
+					
+				break;
+				// TEST
+				case '3':
+					var chartData3 = {
+						graphset: [
+							{
+								// timezone: 8,
+								type: 'boxplot',
+								borderColor: borderColor,
+								borderRadius: borderRadius,
+								borderWidth: borderWidth,
+
+								title: {
+									text: 'Multiple Tool Alarm Time',
+									adjustLayout: true,
+									marginTop: '20px'
+								},
+								"legend": legend,
+								plot: plot,
+								plotarea: plotarea,
+								scaleX: scaleX_DATE,
+								scaleY: {
+									guide: {
+										lineStyle: 'solid'
+									},
+									label: {
+										text: 'Lost time (mins)'
+									},
+									zooming: true,
+									minValue: 'auto',
+								},
+								crosshairX: crosshairX,
+								tooltip: {
+									visible: false
+								},
+								preview: {
+									adjustLayout: true,
+									live: true
+								},
+								series: [
+									{
+										values: [], // empty, needed for scaleY
+										legendItem: {
+											visible: false
+										}
+									}
+								]
+							}
+						],
+						"gui":gui,
+					};
+					zingchart.render({ 
+						id:'chartDiv3',
+						data:chartData3,
+						height:600,
+						width:"96%"
+					});
+					var key = Object.keys(data);
+					// console.log(key);
+					var count = Object.keys(data).length - 1;
+					for (let q = 0; q < count; q++) {
+						zingchart.exec('chartDiv3', 'addplot', {
+							data: {
+								dataBox: data[key[q]].map(Number),
+								text: key[q],
+								'legend-marker': {
+									type: "circle",
+									// 'background-color': "#fce9e9",
+									// 'border-color': "#D31E1E",
+									'border-width':1,
+									'show-line': true,
+								}
+							}
+						});
+					};
+					
+				break;
+				// SCN WPH
+				case '4':
+					var chartData4 = {
+						graphset: [
+							{
+								// timezone: 8,
+								type: 'line',
+								borderColor: borderColor,
+								borderRadius: borderRadius,
+								borderWidth: borderWidth,
+
+								title: {
+									text: self.SCN_WPH_TOOL_NAME + ' - WPH',
+									adjustLayout: true,
+									marginTop: '20px'
+								},
+								"legend": legend,
+								plot: plot,
+								plotarea: plotarea,
+								scaleX: scaleX_LotStartTime,
+								scaleY: {
+									guide: {
+										lineStyle: 'solid'
+									},
+									label: {
+										text: 'Pcs '
+									},
+									zooming: true,
+									"markers":[
+									{
+										"type":"line",
+										"range":[data['AVG']],
+										"value-range":true,
+										"line-color":"#0000cc",
+										"line-width":2,
+										"line-style":"dashed",//solid f58f0d
+										"alpha":0.5,
+										placement : "top",
+										"label":{
+											"text":"Avg: "+data['AVG'],
+											"font-color":"#0000cc",
+											"font-weight":"bold",
+											"font-size":14,
+											"callout":true,
+											"callout-position":"left",
+											"label-placement" : "auto",
+											offsetX: 80,
+										},
+									},{
+										"type":"line",
+										"range":[data['WPH_SPEC']],
+										"value-range":true,
+										"line-color":"#ff0000",
+										"line-width":2,
+										"line-style":"dashed",//solid
+										"alpha":0.5,
+										placement : "top",
+										"label":{
+											"text":"SPEC: "+data['WPH_SPEC'],
+											"font-color":"#ff0000",
+											"font-weight":"bold",
+											"font-size":14,
+											"callout":true,
+											"callout-position":"left",
+											"label-placement" : "auto",
+										},
+									}],
+									minValue: 'auto',
+								},
+								crosshairX: {
+									lineColor: '#555',
+									marker: {
+										borderColor: '#fff',
+										borderWidth: '0px',
+										size: '5px'
+									},
+									scaleLabel:{
+										fontAngle : 90,
+										offsetY : '60px',
+										callout : false
+									},
+									plotLabel: {
+										backgroundColor: '#fff',
+										borderRadius: '2px',
+										borderWidth: '2px',
+										multiple: true,
+										alpha: 0.8,
+										text: '<b style="color:%color">%plot-text:</b> %node-value<br><b style="color:%color">LotName:</b> %data-parameter1<br><b style="color:%color">SCN_Recipe:</b> %data-parameter2<br><b style="color:%color">Layer:</b> %data-parameter3'
+									}
+								},
+								tooltip: {
+									visible: false
+								},
+								preview: {
+									adjustLayout: true,
+									live: true
+								},
+								series: [
+									{
+										values: data['WPR'].map(Number),
+										"data-parameter1" : data['LotName'],
+										"data-parameter2" : data['Recipe'],
+										"data-parameter3" : data['Layer'],
+										// "data-parameter4" : data['TRACK_Recipe'],
+										text: 'WPH',
+										'legend-marker': {
+											type: "circle",
+											// 'background-color': "#fce9e9",
+											// 'border-color': "#D31E1E",
+											'border-width':1,
+											'show-line': true,
+										}
+									}
+								]
+							}
+						],
+						"gui":gui,
+					};
+					zingchart.render({ 
+						id:'chartDiv4',
+						data:chartData4,
+						height:600,
+						width:"96%"
+					});
+					
+				break;
+				// EQAS 
+				case '5':
+					var chartData5 = {
+						graphset: [
+							{
+								// timezone: 8,
+								type: 'line',
+								borderColor: borderColor,
+								borderRadius: borderRadius,
+								borderWidth: borderWidth,
+
+								title: {
+									text: 'EQAS Multiple Tool Alarm Time',
+									adjustLayout: true,
+									marginTop: '20px'
+								},
+								"legend": legend,
+								plot: plot,
+								plotarea: plotarea,
+								scaleX: scaleX_DATE,
+								scaleY: {
+									guide: {
+										lineStyle: 'solid'
+									},
+									label: {
+										text: 'Lost time (mins)'
+									},
+									zooming: true,
+									minValue: 'auto',
+								},
+								crosshairX: crosshairX,
+								tooltip: {
+									visible: false
+								},
+								preview: {
+									adjustLayout: true,
+									live: true
+								},
+								series: [
+									{
+									values: [], // empty, needed for scaleY
+									legendItem: {
+										visible: false
+									}
+									}
+								]
+							}
+						],
+						"gui":gui,
+					};
+					zingchart.render({ 
+						id:'chartDiv5',
+						data:chartData5,
+						height:600,
+						width:"96%"
+					});
+					var key = Object.keys(data);
+					// console.log(key);
+					var count = Object.keys(data).length - 1;
+					for (let q = 0; q < count; q++) {
+						zingchart.exec('chartDiv0', 'addplot', {
+							data: {
+								values: data[key[q]].map(Number),
+								text: key[q],
+								'legend-marker': {
+									type: "circle",
+									// 'background-color': "#fce9e9",
+									// 'border-color': "#D31E1E",
+									'border-width':1,
+									'show-line': true,
+								}
+							}
+						});
+					};
+					
+				break;
+				// compare
+				case '6':
+					COM_OPTION1     = $('#COM_PPID').val();
+					var graphString = {
+						type: 'line',
+						borderColor: borderColor,
+						borderRadius: borderRadius,
+						borderWidth: borderWidth,
+						title: {
+							text: COM_OPTION1[0],
+							adjustLayout: true,
+							marginTop: '20px'
+						},
+						"legend": legend,
+						plot: plot,
+						plotarea: plotarea,
+						scaleX: {
+							itemsOverlap: true,
+							"item":{
+								"font-angle"	: 90,
+								"font-size"		: "10px",
+								// "font-weight"	: "bold",
+								"color"			: "#000"
+							},
+							zooming: true,
+							"max-items":50,
+							// values: data['LotStartTime(ATK-04)']
+							"markers":[]
+						},
+						scaleY: {
+							guide: {
+								lineStyle: 'solid'
+							},
+							label: {
+								text: 'pcs or sec'
+							},
+							zooming: true,
+							minValue: 'auto',
+						},
+						crosshairX: {
+							lineColor: '#555',
+							marker: {
+								borderColor: '#fff',
+								borderWidth: '1px',
+								size: '5px'
+							},
+							plotLabel: {
+								backgroundColor: '#fff',
+								borderRadius: '2px',
+								borderWidth: '2px',
+								multiple: true,
+								alpha: 0.8,
+								text: '<b style="color:%color">%plot-text:</b> %node-value<br><b style="color:%color">LotStartTime:</b> %data-parameter1<br><b style="color:%color">EqName:</b> %data-parameter2<br><b style="color:%color">LOTID:</b> %data-parameter3<br><b style="color:%color">PCS:</b> %data-parameter4'
+							}
+						},
+						tooltip: {
+							visible: false
+						},
+						preview: {
+							adjustLayout: true,
+							live: true
+						},
+						series: [
+							{
+								values: [], // empty, needed for scaleY
+								legendItem: {
+									visible: false
+								}
+							}
+						]
+					};
+					var chartData6 = {
+						graphset: [
+							graphString
+						],
+						"gui": gui,
+					};
+					var marker_array    = new Array();
+					var value_array     = new Array();
+					var date_array      = new Array();
+					var eqName_array    = new Array();
+					var LOTID_array     = new Array();
+					var LOTNUM_array    = new Array();
+					
+					var TK_value_array  = new Array();
+					var TK_date_array   = new Array();
+					var TK_eqName_array = new Array();
+					var TK_LOTID_array  = new Array();
+					var TK_LOTNUM_array = new Array();
+
+					var key = Object.keys(data);
+
+					console.log(data);
+					console.log(key);
+					console.log(chartData6);
+
+					var item_count = 5 ;
+					var double_item_count = item_count*2;
+					for( i = 0 ; i < tool_num ; i++){
+						if(self.COM_TYPE == '2'){
+							TK_value_array  = TK_value_array.concat(data[key[ double_item_count * i ]].map(Number));
+							TK_date_array   = TK_date_array.concat(data[key[ ( double_item_count * i ) + 1 ]]);
+							TK_eqName_array = TK_eqName_array.concat(data[key[ ( double_item_count * i ) + 2 ]]);
+							TK_LOTID_array  = TK_LOTID_array.concat(data[key[ ( double_item_count * i ) + 3 ]]);
+							TK_LOTNUM_array = TK_LOTNUM_array.concat(data[key[ ( double_item_count * i ) + 4 ]].map(Number));
+
+							value_array     = value_array.concat(data[key[ ( double_item_count * i ) + 5 ]].map(Number));
+							date_array      = date_array.concat(data[key[ ( double_item_count * i ) + 6 ]]);
+							eqName_array    = eqName_array.concat(data[key[ ( double_item_count * i ) + 7 ]]);
+							LOTID_array     = LOTID_array.concat(data[key[ ( double_item_count * i ) + 8 ]]);
+							LOTNUM_array    = LOTNUM_array.concat(data[key[ ( double_item_count * i ) + 9 ]].map(Number));
+						} else {
+							value_array  = value_array.concat(data[key[ item_count * i ]].map(Number));
+							date_array   = date_array.concat(data[key[ ( item_count * i ) + 1 ]]);
+							eqName_array = eqName_array.concat(data[key[ ( item_count * i ) + 2 ]]);
+							LOTID_array  = LOTID_array.concat(data[key[ ( item_count * i ) + 3 ]]);
+							LOTNUM_array = LOTNUM_array.concat(data[key[ ( item_count * i ) + 4 ]].map(Number));
+						}
+						last_eqName = eqName_array[eqName_array.length - 1] ;
+						last_date   = date_array.length - 1 ;
+
+						console.log("last_date:",last_date);
+						console.log("last_eqName:",last_eqName);
+
+						marker = {
+							"type":"line",
+							"range":[last_date],
+							"value-range":true,
+							"line-color":"#0000cc",
+							"line-width":2,
+							"value-range" : true,
+							"line-style":"dashed",//solid f58f0d
+							"alpha":0.5,
+							placement : "top",
+							"label":{
+								"text":last_eqName,
+								"font-color":"#0000cc",
+								"font-weight":"bold",
+								"font-size":10,
+								"callout":true,
+								"callout-position":"left",
+								"label-placement" : "auto",
+								offsetX: -15,
+								offsetY: -225,
+							},
+						};
+						chartData6['graphset'][0]['scaleX']['markers'].push(marker);
+					}
+					chartData6['graphset'][0]['scaleX']['values'] = date_array;
+
+					console.log(value_array);
+					console.log(date_array);
+	
+					zingchart.render({ 
+						id:'chartDiv6',
+						data:chartData6,
+						height:600,
+						width:"96%"
+					});
+					
+					if(self.COM_TYPE == '2'){
+						zingchart.exec('chartDiv6', 'addplot', {
+							data: {
+								values: value_array,
+								"data-parameter1" : date_array,
+								"data-parameter2" : eqName_array,
+								"data-parameter3" : LOTID_array,
+								"data-parameter4" : LOTNUM_array,
+								text: 'SCN_'+self.COM_FACTOR,
+								'legend-marker': {
+									type: "circle",
+									'border-width':1,
+									'show-line': true,
+								}
+							}
+						});
+						zingchart.exec('chartDiv6', 'addplot', {
+							data: {
+								values: TK_value_array,
+								"data-parameter1" : TK_date_array,
+								"data-parameter2" : TK_eqName_array,
+								"data-parameter3" : TK_LOTID_array,
+								"data-parameter4" : TK_LOTNUM_array,
+								text: 'TK_'+self.COM_FACTOR,
+								'legend-marker': {
+									type: "circle",
+									'border-width':1,
+									'show-line': true,
+								}
+							}
+						});
+					} else {
+						zingchart.exec('chartDiv6', 'addplot', {
+							data: {
+								values: value_array,
+								"data-parameter1" : date_array,
+								"data-parameter2" : eqName_array,
+								"data-parameter3" : LOTID_array,
+								"data-parameter4" : LOTNUM_array,
+								text: self.COM_FACTOR,
+								'legend-marker': {
+									type: "circle",
+									// 'background-color': "#fce9e9",
+									// 'border-color': "#D31E1E",
+									'border-width':1,
+									'show-line': true,
+								}
+							}
+						});
+					}
+				break;
+				// wph table chart
+				case '7':
+					performance_tool  = new Array();
+					performance_bar   = new Array();
+					performance_line1 = new Array();
+					performance_line2 = new Array();
+
+					if(tool_num == 1){
+						bar_name   = 'SevenDayAvg';
+						line_name1 = 'ThirtyDayAvg';
+					} else {
+						bar_name   = 'TK_SevenDayAvg';
+						line_name1 = 'TK_ThirtyDayAvg';
+					}
+
+					for(let i = 0 ; i < self.WPH_TABLE_LIST.length -1 ; i++){
+						performance_tool.push(self.WPH_TABLE_LIST[i][0]);
+						performance_bar.push(self.WPH_TABLE_LIST[i][bar_name]);
+						performance_line1.push(self.WPH_TABLE_LIST[i][line_name1]);
+						performance_line2.push(self.WPH_TABLE_LIST[i]['WPH_SPEC']);
+					}
+					var chartData8 = {
+						graphset: [
+							{
+								type: 'mixed',
+								borderColor: borderColor,
+								borderRadius: borderRadius,
+								borderWidth: borderWidth,
+
+								title: {
+									text: 'TRACK WPH Performance',
+									adjustLayout: true,
+									marginTop: '20px'
+								},
+								"legend": legend,
+								plot: plot,
+								plotarea: plotarea,
+								scaleX: {
+									itemsOverlap: true,
+									"item":scaleX_item,
+									zooming: true,
+									"max-items":50,
+									values: performance_tool
+								},
+								scaleY: {
+									guide: {
+										lineStyle: 'solid'
+									},
+									label: {
+										text: 'Pcs'
+									},
+									
+									zooming: true,
+									minValue: 'auto',
+								},
+								crosshairX: crosshairX,
+								tooltip: {
+									visible: false
+								},
+								preview: {
+									adjustLayout: true,
+									live: true
+								},
+								series: [
+									{
+										type: 'bar',
+										values: performance_bar.map(Number),
+										text: '7D Avg.',
+										'legend-marker': {
+											type: "square",
+											'border-width':1,
+											'show-line': true,
+										}
+									},
+									{
+										type: 'line',
+										values: performance_line1.map(Number),
+										text: '30D Avg.',
+										"line-color":"orange",
+										'legend-marker': {
+											type: "circle",
+											'border-width':1,
+											'show-line': true,
+										}
+									},
+									{
+										type: 'line',
+										values: performance_line2.map(Number),
+										text: 'Spec',
+										"line-style":"dashed",
+										"line-color":"red",
+										'legend-marker': {
+											type: "circle",
+											'border-width':1,
+											'show-line': true,
+										}
+									}
+									
+								]
+							}
+						],
+						"gui":gui,
+					};
+					zingchart.render({ 
+						id:'chartDiv8',
+						data:chartData8,
+						height:600,
+						width:"96%"
+					});
+					var chartData7 = {
+						graphset: [
+							{
+								// timezone: 8,
+								type: 'line',
+								borderColor: borderColor,
+								borderRadius: borderRadius,
+								borderWidth: borderWidth,
+
+								title: {
+									text: self.wph_table_type + ' WPD Summary Chart',
+									adjustLayout: true,
+									marginTop: '20px'
+								},
+								"legend": legend,
+								plot: plot,
+								plotarea: plotarea,
+								scaleX: scaleX_DATE,
+								scaleY: {
+									guide: {
+										lineStyle: 'solid'
+									},
+									label: {
+										text: 'Pcs '
+									},
+									zooming: true,
+									"markers":[
+									{
+										"type":"line",
+										"range":[data['AVG0']],
+										"value-range":true,
+										"line-color":"#f58f0d",
+										"line-width":2,
+										"line-style":"dashed",//solid
+										"alpha":1,
+										"label":{
+											"text":"TK_Avg: "+data['AVG0'],
+											"font-color":"#f58f0d",
+											"font-weight":"bold",
+											"font-size":13,
+											"callout":true,
+											"callout-position":"left"
+										},
+									},{
+										"type":"line",
+										"range":[data['AVG1']],
+										"value-range":true,
+										"line-color":"#0000cc",
+										"line-width":2,
+										"line-style":"dashed",//solid
+										"alpha":1,
+										"label":{
+											"text":"SCAN_Avg: "+data['AVG1'],
+											"font-color":"#0000cc",
+											"font-weight":"bold",
+											"font-size":13,
+											"callout":true,
+											"callout-position":"left",
+											offsetX: 150,
+										},
+									}],
+									minValue: 'auto',
+								},
+								crosshairX: crosshairX,
+								tooltip: {
+									visible: false
+								},
+								preview: {
+									adjustLayout: true,
+									live: true
+								},
+								series: [
+									{
+										values: [], // empty, needed for scaleY
+										legendItem: {
+											visible: false
+										}
+									}
+								]
+							}
+						],
+						"gui":gui,
+					};
+					zingchart.render({ 
+						id:'chartDiv7',
+						data:chartData7,
+						height:600,
+						width:"96%"
+					});
+					var key = Object.keys(data);
+					for (let q = 0; q < tool_num; q++) {
+						zingchart.exec('chartDiv7', 'addplot', {
+							data: {
+								values: data[key[q]].map(Number),
+								text: key[q],
+								'legend-marker': {
+									type: "circle",
+									// 'background-color': "#fce9e9",
+									// 'border-color': "#D31E1E",
+									'border-width':1,
+									'show-line': true,
+								}
+							}
+						});
+					};
+				break;
+			}
+		}
+		self.ErrorProof = function(INDEX){
+			var Error_String = "";
+			switch(INDEX){
+				case '0':
+					tool_string = $('#tool').val();
+					alm_string  = $('#alm').val();
+
+					if(tool_string == null)
+						Error_String = "請選擇機台";
+					else if(alm_string == null)
+						Error_String = "請選擇Alarm";
+					else
+						return self.Draw(INDEX);
+				break;
+				case '1':
+					tool_string = $('#tool2').val();
+					alm_string  = $('#alm2').val();
+					
+					if(tool_string == null)
+						Error_String = "請選擇機台";
+					else if(alm_string == null)
+						Error_String = "請選擇Alarm";
+					else
+						return self.Draw(INDEX);
+				break;
+				case '2':
+					tool_string = $('#tool3').val();
+					
+					if(tool_string == null)
+						Error_String = "請選擇機台";
+					else
+						return self.Draw(INDEX);
+				break;
+				case '3':
+					tool_string = $('#tool4').val();
+					alm_string = $('#alm4').val();
+
+					if(tool_string == null)
+						Error_String = "請選擇機台";
+					else if(alm_string == null)
+						Error_String = "請選擇Alarm";
+					else
+						return self.Draw(INDEX);
+				break;
+				case '4':
+					tool_string = $('#tool5').val();
+					
+					if(tool_string == null)
+						Error_String = "請選擇機台";
+					else
+						return self.Draw(INDEX);
+				break;
+				case '5':
+					tool_string = $('#tool6').val();
+					alm_string = $('#alm6').val();
+					
+					if(tool_string == null)
+						Error_String = "請選擇機台";
+					else if(alm_string == null)
+						Error_String = "請選擇Alarm";
+					else
+						return self.Draw(INDEX);
+				break;
+				case '6':
+					Tool7 = $('#tool7').val();
+					Tool8 = $('#tool8').val();
+					COM_TYPE = self.COM_TYPE ; 
+					COM_OPTION1 = $('#COM_PPID').val();
+
+					tool_string = $('#COM_TOOL').val();
+
+					if(COM_TYPE == '2'){
+						COM_OPTION3 = $('#COM_PPID_TRACK').val();
+
+						if(Tool8 == null)
+							Error_String = "請選擇機台";
+						else if(tool_string == null)
+							Error_String = "請選擇要比較的機台";
+						else if(COM_OPTION1 == null)
+							Error_String = "請選擇PPID";
+						else if(COM_OPTION3 == null)
+							Error_String = "請選擇TRACK PPID";
+						else
+							return self.Draw(INDEX);
+					} else {
+						if(COM_TYPE == '0'){
+							if(Tool7 == null)
+								Error_String = "請選擇機台";
+							else if(tool_string == null)
+								Error_String = "請選擇要比較的機台";
+							else if(COM_OPTION1 == null)
+								Error_String = "請選擇PPID";
+							else
+								return self.Draw(INDEX);
+						} else {
+							if(Tool8 == null)
+								Error_String = "請選擇機台";
+							else if(tool_string == null)
+								Error_String = "請選擇要比較的機台";
+							else if(COM_OPTION1 == null)
+								Error_String = "請選擇PPID";
+							else
+								return self.Draw(INDEX);
+						}
+					}
+						
+
+		
+
+				break;
+				case '7':
+					return self.Draw(INDEX);
+				break;
+			}
+			swal({
+				title:"Error",
+				text:Error_String,
+				type:"error",
+			});
+			return false;
+		}
+		self.ExportCSV = function(INDEX){
+			if(self.ErrorProof(INDEX)){
+				var CSV_DATA  = new Array();
+				var key       = Object.keys(self.DrawData);
+				var key_array = new Array(key);
+
+				for (let q = 0; q < key.length ; q++){
+					if(Array.isArray(self.DrawData[key[q]])){
+						CSV_DATA.push(self.DrawData[key[q]]);
+					}
+				}
+				// 轉置
+				var newArray = CSV_DATA[0].map(function(col, i) {
+					return CSV_DATA.map(function(row) {
+						return row[i];
+					})
+				});
+				
+				let csvContent = "data:text/csv;charset=utf-8,"
+				+ key_array.map(e => e.join(",")) + "\n"
+				+ newArray.map(e => e.join(",")).join("\n");
+				
+				var encodedUri = encodeURI(csvContent);
+				var link       = document.createElement("a");
+				link.setAttribute("href", encodedUri);
+				link.setAttribute("download", "MEIS_Throughput.csv");
+				document.body.appendChild(link); // Required for FF
+
+				link.click();
+			}
+		}
+		/*
+		self.Change_EQAS_Eqp_Type = function(){
+			self.EQAS_eqp_type  = $("#EQAS_eqp_type").val();
+			
+			self.Get_EQAS_MACHINE_LIST();
+		}
+		self.Get_EQAS_MACHINE_LIST = function(){
+			var param = {
+				'func'    : 'Get_EQAS_MACHINE_LIST',
+				'EQAS_eqp_type' : self.EQAS_eqp_type
+			};
+
+			return new Promise( function(resolve, reject){
+				$http({
+					method    : "POST",
+					dataType  : "JSON",
+					url       : self.url,
+					data      : param
+				}).success(function(data){
+					self.EQAS_machine_list = data;
+
+				//  console.log("EQAS_machine_list:",data);
+					resolve(1);
+				}).error(function(jqXHR, exception){
+					display_error(jqXHR, exception);
+				});
+			});
+		}
+		self.Change_EQAS_Machine_Type = function(){
+			self.EQAS_machine_type  = $("#EQAS_machine_type").val();
+			self.Get_EQAS_Alm_Data().then(function(){
+				$('#alm6').multiselect('reload');
+			});
+			self.Get_EQAS_Tool_Data().then(function(){
+				$('#tool6').multiselect('reload');
+			});
+		}
+		self.Get_EQAS_Tool_Data = function(){
+			var param = {
+				'func'    : 'Get_EQAS_Tool_Data',
+				'EQAS_machine_type' : self.EQAS_machine_type,
+				'EQAS_eqp_type' : self.EQAS_eqp_type
+			};
+
+			return new Promise( function(resolve, reject){
+				$http({
+					method    : "POST",
+					dataType  : "JSON",
+					url       : self.url,
+					data      : param
+				}).success(function(data){
+					self.EQAS_tool_list = data;
+
+				//  console.log("EQAS_tool_list:",data);
+					resolve(1);
+				}).error(function(jqXHR, exception){
+					display_error(jqXHR, exception);
+				});
+			});
+		}
+		self.Get_EQAS_Alm_Data = function(){
+			var param = {
+				'func'    : 'Get_EQAS_Alm_Data',
+				'EQAS_machine_type' : self.EQAS_machine_type,
+				'EQAS_eqp_type' : self.EQAS_eqp_type
+			};
+
+			return new Promise( function(resolve, reject){
+				$http({
+					method    : "POST",
+					dataType  : "JSON",
+					url       : self.url,
+					data      : param
+				}).success(function(data){
+					self.EQAS_alm_list = data;
+
+				//  console.log("EQAS_alm_list:",data);
+					resolve(1);
+				}).error(function(jqXHR, exception){
+					display_error(jqXHR, exception);
+				});
+			});
+		}
+		*/
+		self.Change_COM_TYPE = function(){
+			$('#tool7').multiselect('reload');
+			$('#tool8').multiselect( 'reset' );
+			$('#COM_PPID').multiselect( 'reset' );
+			$('#COM_PPID_TRACK').multiselect( 'reset' );
+			$('#COM_TOOL').multiselect( 'reset' );
+		}
+		self.GET_COM_PPID = function(TOOL){
+			waitingDialog.show("Getting Data...");
+			var param = {
+				'func'    : 'GET_COM_PPID',
+				'tool' : TOOL
+			};
+
+			return new Promise( function(resolve, reject){
+				$http({
+					method    : "POST",
+					dataType  : "JSON",
+					url       : self.url,
+					data      : param
+				}).success(function(data){
+					self.COM_PPID_LIST = data;
+					console.log("COM_PPID_LIST:",data);
+					waitingDialog.hide();
+					resolve(1);
+				}).error(function(jqXHR, exception){
+					display_error(jqXHR, exception);
+				});
+			});
+		}
+		self.GET_COM_PPID_TRACK = function(PPID,TOOL){
+			waitingDialog.show("Getting Data...");
+			var param = {
+				'func'    : 'GET_COM_PPID_TRACK',
+				'tool' : TOOL,
+				'PPID' : PPID
+			};
+
+			return new Promise( function(resolve, reject){
+				$http({
+					method    : "POST",
+					dataType  : "JSON",
+					url       : self.url,
+					data      : param
+				}).success(function(data){
+					self.COM_PPID_TRACK_LIST = data;
+					console.log("COM_PPID_TRACK_LIST:",data);
+					waitingDialog.hide();
+					resolve(1);
+				}).error(function(jqXHR, exception){
+					display_error(jqXHR, exception);
+				});
+			});
+		}
+		self.GET_COM_TOOL = function(RECIPE,TK_RECIPE,TYPE){
+			waitingDialog.show("Getting Data...");
+			var param = {
+				'func'      : 'GET_COM_TOOL',
+				'RECIPE'    : RECIPE,
+				'TK_RECIPE' : TK_RECIPE,
+				'TYPE'      : TYPE
+			};
+
+			return new Promise( function(resolve, reject){
+				$http({
+					method    : "POST",
+					dataType  : "JSON",
+					url       : self.url,
+					data      : param
+				}).success(function(data){
+					self.COM_tool_list = data;
+					console.log("COM_tool_list:",data);
+					waitingDialog.hide();
+					resolve(1);
+				}).error(function(jqXHR, exception){
+					display_error(jqXHR, exception);
+				});
+			});
+		}
+		self.GET_WPH_TABLE = function(){
+			waitingDialog.show("Getting Data...");
+			var param = {
+				'func'    : 'GET_WPH_TABLE',
+				'type' : self.wph_table_type
+			};
+			console.log(self.wph_table_type);
+			return new Promise( function(resolve, reject){
+				$http({
+					method    : "POST",
+					dataType  : "JSON",
+					url       : self.url,
+					data      : param
+				}).success(function(data){
+					self.WPH_TABLE_LIST = data;
+					self.Draw('7');
+					console.log("WPH_TABLE_LIST:",data);
+					waitingDialog.hide();
+					resolve(1);
+				}).error(function(jqXHR, exception){
+					display_error(jqXHR, exception);
+				});
+			});
+		}
+		self.Change_wph_table_type = function(){
+			return self.GET_WPH_TABLE();
+		}
+		self.Check_Combine_Table = function(TYPE){
+			if(TYPE == 'ASCAN_DRY' || TYPE == 'ASCAN_IMM' || TYPE == 'KSCAN') return true;
+			else return false;
+		}
+	}]);
+	
+	$(document).ready(function(){
+		document.title = "Throughput - MEIS 2.0";
+	});
+  $(function () {
+    $('#reservation0').daterangepicker({
+			startDate: moment().subtract(29, "days"),
+			endDate  : moment(),
+			maxDate  : new Date(),
+			locale: {
+				format: "YYYY/MM/DD" 
+			},
+			ranges: {
+				// "今天": [moment(), moment()],
+				// "昨天": [moment().subtract(1, "days"), moment().subtract(1, "days")],
+				"過去 7 天": [moment().subtract(6, "days"), moment()],
+				"過去 30 天": [moment().subtract(29, "days"), moment()],
+				"本月": [moment().startOf("month"), moment().endOf("month")],
+				"上個月": [moment().subtract(1, "month").startOf("month"), moment().subtract(1, "month").endOf("month")],
+				"二個月": [moment().subtract(2, "month").startOf("month"), moment().endOf("month")]
+			}
+		});
+		$('#reservation1').daterangepicker({
+			startDate: moment().subtract(29, "days"),
+			endDate  : moment(),
+			maxDate  : new Date(),
+			locale: {
+				format: "YYYY/MM/DD" 
+			},
+			ranges: {
+				"過去 7 天": [moment().subtract(6, "days"), moment()],
+				"過去 30 天": [moment().subtract(29, "days"), moment()],
+				"本月": [moment().startOf("month"), moment().endOf("month")],
+				"上個月": [moment().subtract(1, "month").startOf("month"), moment().subtract(1, "month").endOf("month")],
+				"二個月": [moment().subtract(2, "month").startOf("month"), moment().endOf("month")]
+			}
+		});
+		$('#reservation2').daterangepicker({
+			startDate: moment().subtract(29, "days"),
+			endDate  : moment(),
+			maxDate: new Date(),
+			locale: {
+				format: "YYYY/MM/DD" 
+			},
+			ranges: {
+				"過去 7 天": [moment().subtract(6, "days"), moment()],
+				"過去 30 天": [moment().subtract(29, "days"), moment()],
+				"本月": [moment().startOf("month"), moment().endOf("month")],
+				"上個月": [moment().subtract(1, "month").startOf("month"), moment().subtract(1, "month").endOf("month")],
+				"二個月": [moment().subtract(2, "month").startOf("month"), moment().endOf("month")]
+			}
+		});
+		$('#reservation4').daterangepicker({
+			startDate: moment().subtract(29, "days"),
+			endDate  : moment(),
+			maxDate  : new Date(),
+			locale: {
+				format: "YYYY/MM/DD" 
+			},
+			ranges: {
+				"過去 7 天": [moment().subtract(6, "days"), moment()],
+				"過去 30 天": [moment().subtract(29, "days"), moment()],
+				"本月": [moment().startOf("month"), moment().endOf("month")],
+				"上個月": [moment().subtract(1, "month").startOf("month"), moment().subtract(1, "month").endOf("month")],
+				"二個月": [moment().subtract(2, "month").startOf("month"), moment().endOf("month")]
+			}
+		});
+		$('#reservation6').daterangepicker({
+			startDate: moment().subtract(29, "days"),
+			endDate  : moment(),
+			maxDate  : new Date(),
+			locale: {
+				format: "YYYY/MM/DD" 
+			},
+			ranges: {
+				"過去 7 天": [moment().subtract(6, "days"), moment()],
+				"過去 30 天": [moment().subtract(29, "days"), moment()],
+				"本月": [moment().startOf("month"), moment().endOf("month")],
+				"上個月": [moment().subtract(1, "month").startOf("month"), moment().subtract(1, "month").endOf("month")],
+				"二個月": [moment().subtract(2, "month").startOf("month"), moment().endOf("month")]
+			}
+		});
+		$('#reservation7').daterangepicker({
+			startDate: moment().subtract(29, "days"),
+			endDate  : moment(),
+			maxDate  : new Date(),
+			locale: {
+				format: "YYYY/MM/DD" 
+			},
+			ranges: {
+				"過去 7 天": [moment().subtract(6, "days"), moment()],
+				"過去 30 天": [moment().subtract(29, "days"), moment()],
+				"本月": [moment().startOf("month"), moment().endOf("month")],
+				"上個月": [moment().subtract(1, "month").startOf("month"), moment().subtract(1, "month").endOf("month")],
+				"二個月": [moment().subtract(2, "month").startOf("month"), moment().endOf("month")]
+			}
+		});
+  });
+</script>
+
+<?php 
+	require_once("Controller/css/Common.php");
+	require_once("include/menu.php"); 
+?>
+<section class="content-header">
+  <h1> Throughput - <small> List</small></h1>
+  <ol class="breadcrumb">
+			<li><a href="javascript:void(0)"><i class="fa fa-tasks"></i> Track Daily Management</a></li>
+			<li class="active"> Throughput </li>
+  </ol>
+</section>
+
+<div  style="width:100%;" class="content" ng-app="app" ng-controller="MntCtrl as Ctrl">
+	<div class="row">
+		<div ng-init = "Ctrl.init()" class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+			<div style="width:100%;" class="box box-solid">
+				<div class="box-header">
+					<i class="fa fa-table"></i>
+					<h3 class="box-title">1 - WPH Summary - 時間區間 : 07:20:00 - 07:20:00 - 更新時程 09:00</h3>
+					<div class="box-tools pull-right">
+						<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+					</div>
+				</div>
+				<div class="box-body">
+					<div ng-init="Ctrl.GET_WPH_TABLE()" class="col-md-2 col-sm-2 col-xs-2">
+						<select class="form-control" name="wph_table_type" id="wph_table_type" ng-change="Ctrl.Change_wph_table_type()" ng-model="Ctrl.wph_table_type">			
+							<option value="ASCAN_DRY">ASCAN - DRY</option>
+							<option value="ASCAN_IMM">ASCAN - IMM</option>
+							<option value="KSCAN">KSCAN</option>
+							<option value="BTK">BTK</option>
+							<option value="ITK">ITK</option>
+						</select>
+					</div>
+					<div class="col-md-12 col-sm-12 col-xs-12">
+						<div ng-if="!Ctrl.Check_Combine_Table(Ctrl.wph_table_type)" class="table-box" style="width:100%;">
+							<table id="wph_table" datatable="ng" dt-options="Ctrl.dtOptions" dt-column-defs="Ctrl.dtColumnDefs" border="1" width="100%" class="table"  align="center" cellpadding="10">
+								<thead>
+									<tr class="bg-primary" style="width:100%;">
+										<th align="center" class = "value" >EqName</th>
+										<th align="center" class = "value2" >Model</th>
+										<th align="center" class = "value" >WPD Target</th>
+										<th align="center" class = "value" >WPH Target</th>
+										<th style="background-color:#ff884d" align="center" class = "value" >YesterDay</th>
+										<th style="background-color:#0073e6" align="center" class = "value" >7D Avg.</th>
+										<th style="background-color:#00b300" align="center" class = "value" >30D Avg.</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr  ng-repeat="(key,value) in Ctrl.WPH_TABLE_LIST track by $index" >
+										<td align="center" class = "value" >{{ value.EqName }}</td>
+										<td align="center" class = "value2" >{{ value.Model }}</td>
+										<td align="center" class = "value" >{{ value.WPD_SPEC }}</td>
+										<td align="center" class = "value" >{{ value.WPH_SPEC }}</td>
+
+										<td ng-if="value.Yesterday_Flag == 1" style="background-color:#FFB5B5" align="center" class = "value" >{{ value.Yesterday }}</td>
+										<td ng-if="value.Yesterday_Flag != 1"  align="center" class = "value" >{{ value.Yesterday }}</td>
+
+										<td  ng-if="value.SevenDay_Flag == 1" style="background-color:#FFB5B5" align="center" class = "value" >{{ value.SevenDayAvg }}</td>
+										<td  ng-if="value.SevenDay_Flag != 1" align="center" class = "value" >{{ value.SevenDayAvg }}</td>
+										
+										<td  ng-if="value.ThirtyDay_Flag == 1" style="background-color:#FFB5B5" align="center" class = "value" >{{ value.ThirtyDayAvg }}</td>
+										<td  ng-if="value.ThirtyDay_Flag != 1" align="center" class = "value" >{{ value.ThirtyDayAvg }}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<div ng-if="Ctrl.Check_Combine_Table(Ctrl.wph_table_type)" class="table-box" style="width:100%;">
+							<table id="wph_table2" datatable="ng" dt-options="Ctrl.dtOptions_COMBINE" dt-column-defs="Ctrl.dtColumnDefs_COMBINE" border="1" width="100%" class="table"  align="center" cellpadding="10">
+								<thead>
+									<tr class="bg-primary" style="width:100%;">
+										<th align="center" class = "value" >EqName </th>
+										<td align="center" class = "value2" >Model</td>
+										<th align="center" class = "value" >WPD Target</th>
+										<th align="center" class = "value" >WPH Target</th>
+
+										<th style="background-color:#ff884d" align="center" class = "value" >SCAN YesterDay </th>
+										<th style="background-color:#ff884d" align="center" class = "value" >TK YesterDay </th>
+
+										<th style="background-color:#0073e6" align="center" class = "value" >SCAN 7D Avg. </th>
+										<th style="background-color:#0073e6" align="center" class = "value" >TK 7D Avg. </th>
+
+										<th style="background-color:#00b300" align="center" class = "value" >SCAN 30D Avg. </th>
+										<th style="background-color:#00b300" align="center" class = "value" >TK 30D Avg. </th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr  ng-repeat="(key,value) in Ctrl.WPH_TABLE_LIST track by $index" >
+										<td align="center" class = "value" >{{ value.EqName }}</td>
+										<td align="center" class = "value2" >{{ value.Model }}</td>
+										<td align="center" class = "value" >{{ value.WPD_SPEC }}</td>
+										<td align="center" class = "value" >{{ value.WPH_SPEC }}</td>
+
+										<td ng-if="value.Yesterday_Flag == 1" style="background-color:#FFB5B5" align="center" class = "value" >{{ value.Yesterday }}</td>
+										<td ng-if="value.Yesterday_Flag != 1"  align="center" class = "value" >{{ value.Yesterday }}</td>
+
+										<!--SCAN TK combine-->
+										<td ng-if="value.TK_Yesterday_Flag == 1" style="background-color:#FFB5B5" align="center" class = "value" >{{ value.TK_Yesterday }}</td>
+										<td ng-if="value.TK_Yesterday_Flag != 1"align="center" class = "value" >{{ value.TK_Yesterday }}</td>
+
+										<td  ng-if="value.SevenDay_Flag == 1"style="background-color:#FFB5B5" align="center" class = "value" >{{ value.SevenDayAvg }}</td>
+										<td  ng-if="value.SevenDay_Flag != 1"align="center" class = "value" >{{ value.SevenDayAvg }}</td>
+
+										<!--SCAN TK combine-->
+										<td  ng-if="value.TK_SevenDay_Flag == 1"style="background-color:#FFB5B5" align="center" class = "value" >{{ value.TK_SevenDayAvg }}</td>
+										<td  ng-if="value.TK_SevenDay_Flag != 1"align="center" class = "value" >{{ value.TK_SevenDayAvg }}</td>
+										
+										<td  ng-if="value.ThirtyDay_Flag == 1"style="background-color:#FFB5B5" align="center" class = "value" >{{ value.ThirtyDayAvg }}</td>
+										<td  ng-if="value.ThirtyDay_Flag != 1"align="center" class = "value" >{{ value.ThirtyDayAvg }}</td>
+
+										<!--SCAN TK combine-->
+										<td ng-if="value.TK_ThirtyDay_Flag == 1"style="background-color:#FFB5B5" align="center" class = "value">{{ value.TK_ThirtyDayAvg }}</td>
+										<td ng-if="value.TK_ThirtyDay_Flag != 1"align="center" class = "value">{{ value.TK_ThirtyDayAvg }}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+					<div  class="col-md-6 col-sm-6 col-xs-12">
+						<div class="input-group">
+							<div class="input-group-addon">
+								<i class="fa fa-calendar"></i>
+							</div>
+							<input ng-model="Ctrl.reservation7" type="text" class="form-control pull-right" id="reservation7">
+						</div>
+					</div>
+					<div class="col-md-2 col-sm-2 col-xs-12">
+						<button class="btn btn-primary" type="button" ng-click="Ctrl.Draw('7')" >Draw</button>
+					</div>
+					<div class="col-md-12 col-sm-12 col-xs-12">
+						<div class="box box-solid " >
+							<div class="box-header">
+								<i class="fa fa-area-chart"></i>
+								<h3 style="font-weight:bold" class="box-title"><b/><?php echo "<span style='color:blue;'>1-1 WPH Summary</span> Chart - 目前更新時程 09:00"; ?></b></h3>
+								<div class="box-tools pull-right">
+									<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+									<!--<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-plus"></i></button>-->
+								</div>
+							</div>
+							<div class="box-body">
+								<div style="min-height:290px;">
+									<div id='chartDiv7' style="width:100%;"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<!--WPH performance-->
+					<div class="col-md-12 col-sm-12 col-xs-12">
+						<div class="box box-solid " >
+							<div class="box-header">
+								<i class="fa fa-area-chart"></i>
+								<h3 style="font-weight:bold" class="box-title"><b/><?php echo "<span style='color:blue;'>1-2 WPH Performance</span> Chart - 目前更新時程 : 每日早上 9 : 00"; ?></b></h3>
+								<div class="box-tools pull-right">
+									<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+									<!--<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-plus"></i></button>-->
+								</div>
+							</div>
+							<div class="box-body">
+								<div style="min-height:290px;">
+									<div id='chartDiv8' style="width:100%;"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div style="width:100%;" class="box box-solid" >
+				<!--<div class="box-header">
+					<i class="fa fa-table"></i>
+					<h3 class="box-title">EQ : </h3>
+					<div class="box-tools pull-right">
+						<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+					</div>
+				</div>-->
+				<div class="box-body">
+					<div class="form-group row">
+					<!-- multiple tool -->
+						<div  class="col-md-5 col-sm-5 col-xs-12">
+							<select id="tool" name="tool" multiple="multiple" class="3col active">
+								<option ng-repeat="(key,value) in Ctrl.tool_list" value="{{value.EqName}}">{{ value.EqName }}</option>
+							</select>
+						</div>
+						<div  class="col-md-3 col-sm-3 col-xs-12">
+							<select id="alm" name="alm" multiple="multiple" class="3col active">
+								<option ng-if="value.ALID != 1 " ng-repeat="(key,value) in Ctrl.alm_list" value="{{value.ALID}}">{{ value.ALID }} - {{ value.MESSAGE }}</option>
+							</select>
+						</div>
+						<div  class="col-md-3 col-sm-3 col-xs-12">
+							<div class="input-group">
+								<div class="input-group-addon">
+									<i class="fa fa-calendar"></i>
+								</div>
+								<input ng-model="Ctrl.reservation0" type="text" class="form-control pull-right" id="reservation0">
+							</div>
+						</div>
+						<div class="col-md-1 col-sm-1 col-xs-12">
+							<button style="width:100%;margin-bottom:2px;" class="btn btn-primary" type="button" ng-click="Ctrl.ErrorProof('0')" >Draw</button>
+						</div>
+						<div class="col-md-12 col-sm-12 col-xs-12">
+							<div class="box box-solid " >
+								<div class="box-header">
+									<i class="fa fa-area-chart"></i>
+									<h3 style="font-weight:bold" class="box-title"><b/><?php echo "<span style='color:blue;'>2 - Multiple Tool</span> - Alarm Chart - 目前更新時程 : 每日早上 8 : 30 ( SCN - MX-ACT. 、 SCN - STOP Queue 為 早上 9 : 30 )"; ?></b></h3>
+									<div class="box-tools pull-right">
+										<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+									</div>
+								</div>
+								<div class="box-body">
+									<div style="min-height:290px;">
+										<div id='chartDiv0' style="width:100%;"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					<!-- single tool -->
+						<div  class="col-md-5 col-sm-5 col-xs-12">
+							<select id="tool2" name="tool2" multiple="multiple" class="3col active">
+								<option ng-repeat="(key,value) in Ctrl.tool_list" value="{{value.EqName}}">{{ value.EqName }}</option>
+							</select>
+						</div>
+						<div  class="col-md-3 col-sm-3 col-xs-12">
+							<select id="alm2" name="alm2" multiple="multiple" class="3col active">
+								<option ng-if="value.ALID != 1 " ng-repeat="(key,value) in Ctrl.alm_list" value="{{value.ALID}}">{{ value.ALID }} - {{ value.MESSAGE }}</option>
+							</select>
+						</div>
+						<div  class="col-md-3 col-sm-3 col-xs-12">
+							<div class="input-group">
+								<div class="input-group-addon">
+									<i class="fa fa-calendar"></i>
+								</div>
+								<input ng-model="Ctrl.reservation1" type="text" class="form-control pull-right" id="reservation1">
+							</div>
+						</div>
+						<div class="col-md-1 col-sm-1 col-xs-12">
+							<button style="width:100%;margin-bottom:2px;" class="btn btn-primary" type="button" ng-click="Ctrl.ErrorProof('1')" >Draw</button>
+						</div>
+						<div class="col-md-12 col-sm-12 col-xs-12">
+							<div class="box box-solid " >
+								<div class="box-header">
+									<i class="fa fa-area-chart"></i>
+									<h3 style="font-weight:bold" class="box-title"><b/><?php echo "<span style='color:blue;'>3 - Single Tool</span> - Lost Time Chart - 目前更新時程 : 每日早上 8 : 30 ( MOVE、DT 為 早上 10 : 00 )"; ?></b></h3>
+									<div class="box-tools pull-right">
+										<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+									</div>
+								</div>
+								<div class="box-body">
+									<div style="min-height:290px;">
+										<div id='chartDiv1' style="width:100%;"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					<!-- track WPH -->
+						<!--<div  class="col-md-12 col-sm-12 col-xs-12">
+							<div class="alert alert-info" role="alert">
+								<h5 style="font-weight:bold"> 目前TRACK WPH 維護中 ， 預計六點前完畢  </h5>
+							</div>
+						</div>-->
+						<div  class="col-md-5 col-sm-5 col-xs-12">
+							<select id="tool3" name="tool3" multiple="multiple" class="3col active">
+								<option ng-repeat="(key,value) in Ctrl.tool_list" value="{{value.EqName}}">{{ value.EqName }}</option>
+							</select>
+						</div>
+						<div  class="col-md-3 col-sm-3 col-xs-12">
+							<div class="input-group">
+								<div class="input-group-addon">
+									<i class="fa fa-calendar"></i>
+								</div>
+								<input ng-model="Ctrl.reservation2" type="text" class="form-control pull-right" id="reservation2">
+							</div>
+						</div>
+						<div class="col-md-1 col-sm-1 col-xs-12">
+							<button style="width:100%;margin-bottom:2px;" class="btn btn-primary" type="button" ng-click="Ctrl.ErrorProof('2')" >Draw</button>
+						</div>
+						<div class="col-md-1 col-sm-1 col-xs-12">
+							<button style="width:100%;" class="btn btn-info" type="button" ng-click="Ctrl.ExportCSV('2')" >CSV</button>
+						</div>
+						<div class="col-md-12 col-sm-12 col-xs-12">
+							<div class="box box-solid " >
+								<div class="box-header">
+									<i class="fa fa-area-chart"></i>
+									<h3 style="font-weight:bold" class="box-title"><b/><?php echo "<span style='color:blue;'>4 - Single Tool</span> - Track WPH Chart - 更新時程 : 每30分鐘一次 | 定義 : 每批15片以上 | 來源 : AGC"; ?></b></h3>
+									<div class="box-tools pull-right">
+										<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+									</div>
+								</div>
+								<div class="box-body">
+									<div style="min-height:290px;">
+										<div id='chartDiv2' style="width:100%;"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					<!-- scanner WPH tool 5 , draw 4-->
+						<!--<div  class="col-md-12 col-sm-12 col-xs-12">
+							<div class="alert alert-info" role="alert">
+								<h5 style="font-weight:bold"> SCANNER WPH 進行資料校正中，公告期間請勿使用  </h5>
+							</div>
+						</div>-->
+						<div  class="col-md-5 col-sm-5 col-xs-12">
+							<select id="tool5" name="tool5" multiple="multiple" class="3col active">
+								<option ng-repeat="(key,value) in Ctrl.tool_list_YS" value="{{value.UMC_Nr}}">{{ value.UMC_Nr }}</option>
+							</select>
+						</div>
+						<div  class="col-md-3 col-sm-3 col-xs-12">
+							<div class="input-group">
+								<div class="input-group-addon">
+									<i class="fa fa-calendar"></i>
+								</div>
+								<input ng-model="Ctrl.reservation4" type="text" class="form-control pull-right" id="reservation4">
+							</div>
+						</div>
+						<div class="col-md-1 col-sm-1 col-xs-12">
+							<button style="width:100%;margin-bottom:2px;" class="btn btn-primary" type="button" ng-click="Ctrl.ErrorProof('4')" >Draw</button>
+						</div>
+						<div class="col-md-1 col-sm-1 col-xs-12">
+							<button style="width:100%;" class="btn btn-info" type="button" ng-click="Ctrl.ExportCSV('4')" >CSV</button>
+						</div>
+						<div class="col-md-12 col-sm-12 col-xs-12">
+							<div class="box box-solid " >
+								<div class="box-header">
+									<i class="fa fa-area-chart"></i>
+									<h3 style="font-weight:bold" class="box-title"><b/><?php echo "<span style='color:blue;'>5 - Single Tool</span> - Scanner WPH Chart - 更新時程 : 每日早上 8 : 30 | 定義 : 每批15片以上 | 來源 : Scanner Lotreport"; ?></b></h3>
+									<div class="box-tools pull-right">
+										<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+									</div>
+								</div>
+								<div class="box-body">
+									<div style="min-height:290px;">
+										<div id='chartDiv4' style="width:100%;"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					<!-- Compare Chart tool7  draw 6-->
+						<div class="col-md-12 col-sm-12 col-xs-12">
+							<div class="alert alert-info" role="alert">
+								<h5 style="font-weight:bold"> 選擇該機台的Recipe後，再挑選要比較的機台，謝謝</h5>
+							</div>
+						</div>
+						<div class="col-md-2 col-sm-2 col-xs-12">
+							<div>
+								<select class="form-control" name="COM_TYPE" id="COM_TYPE" ng-model="Ctrl.COM_TYPE" ng-change="Ctrl.Change_COM_TYPE()">
+									<option value="0">TRACK</option>
+									<option value="1">SCANNER</option>
+									<option value="2">COMBINE</option>
+								</select>
+							</div>
+							<div ng-show="Ctrl.COM_TYPE == 0" >
+								<select id="tool7" name="tool7" multiple="multiple" class="3col active">
+									<option ng-repeat="(key,value) in Ctrl.tool_list_BARCTK" value="{{value.EqName}}">{{ value.EqName }}</option>
+								</select>
+							</div>
+							<div ng-show="Ctrl.COM_TYPE == 1 || Ctrl.COM_TYPE == 2" >
+								<select id="tool8" name="tool8" multiple="multiple" class="3col active">
+									<option ng-repeat="(key,value) in Ctrl.tool_list_YS" value="{{value.UMC_Nr}}">{{ value.UMC_Nr }}</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-2 col-sm-2 col-xs-12">
+							<div class="rows">
+								<select multiple="multiple" class="3col active" name="COM_PPID" id="COM_PPID" ng-model="Ctrl.COM_PPID">
+									<option  ng-repeat="(key,value) in Ctrl.COM_PPID_LIST" value="{{value.FlwRcpName}}">{{ value.FlwRcpName }}</option>
+								</select>
+							</div>
+							<div ng-show=" Ctrl.COM_TYPE == 2" class="rows">
+								<select multiple="multiple" class="3col active" name="COM_PPID_TRACK" id="COM_PPID_TRACK" ng-model="Ctrl.COM_PPID_TRACK">
+
+									<option  ng-repeat="(key,value) in Ctrl.COM_PPID_TRACK_LIST" value="{{value.FlwRcpName}}">{{ value.FlwRcpName }}</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-2 col-sm-2 col-xs-12">
+							<select id="COM_TOOL" name="COM_TOOL" multiple="multiple" class="3col active">
+								<option ng-repeat="(key,value) in Ctrl.COM_tool_list" value="{{value.EqName}}">{{ value.EqName }}</option>
+							</select>
+						</div>
+						<div  class="col-md-2 col-sm-2 col-xs-12">
+							<select style="padding:6px 6px" class="form-control" name="COM_FACTOR" id="COM_FACTOR" ng-model="Ctrl.COM_FACTOR" >
+								<option value="WPH" >WPH</option>
+								<option ng-if="Ctrl.COM_TYPE == 1" value="PT">PT</option>
+								<option ng-if="Ctrl.COM_TYPE == 1" value="ITV">ITV</option>
+								<!--<option ng-if="Ctrl.COM_TYPE == 1" value="Energy">Energy</option>-->
+								<!--<option ng-if="Ctrl.COM_TYPE == 1" value="SHOT_NO">SHOT_NO</option>-->
+							</select>
+						</div>
+						<div  class="col-md-3 col-sm-3 col-xs-12">
+							<div class="input-group">
+								<div class="input-group-addon">
+									<i class="fa fa-calendar"></i>
+								</div>
+								<input ng-model="Ctrl.reservation6" type="text" class="form-control pull-right" id="reservation6">
+							</div>
+						</div>
+						<div class="col-md-1 col-sm-1 col-xs-12">
+							<button style="width:100%;margin-bottom:2px;" class="btn btn-primary" type="button" ng-click="Ctrl.ErrorProof('6')" >Draw</button>
+							<button style="width:100%;" class="btn btn-info" type="button" ng-click="Ctrl.ExportCSV('6')" >CSV</button>
+						</div>
+						<div class="col-md-12 col-sm-12 col-xs-12">
+							<div class="box box-solid " >
+								<div class="box-header">
+									<i class="fa fa-area-chart"></i>
+									<h3 style="font-weight:bold" class="box-title"><b/><?php echo "<span style='color:blue;'>6 - Single Recipe</span> - Compare Chart"; ?></b></h3>
+									<div class="box-tools pull-right">
+										<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+									</div>
+								</div>
+								<div class="box-body">
+									<div style="min-height:290px;">
+										<div id='chartDiv6' style="width:100%;"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					<!---->
+						<!--<div  class="col-md-12 col-sm-12 col-xs-12">
+							<div class="alert alert-danger" role="alert">
+								<h3 style="font-weight:bold"> 測試區 </h3>
+							</div>	
+						</div>-->
+					<!-- EQAS tool 6 alm 6 draw 5-->
+						<!--<div  class="col-md-1 col-sm-1 col-xs-12">
+							<select class="form-control" name="EQAS_eqp_type" id="EQAS_eqp_type" ng-change="Ctrl.Change_EQAS_Eqp_Type()" ng-model="Ctrl.EQAS_eqp_type">
+								<option value="EQ8">EQ8</option>
+							</select>
+						</div>
+						<div  class="col-md-2 col-sm-2 col-xs-12">
+							<select class="form-control" name="EQAS_machine_type" id="EQAS_machine_type" ng-change="Ctrl.Change_EQAS_Machine_Type()" ng-model="Ctrl.EQAS_machine_type">
+								<option ng-repeat="(key,value) in Ctrl.EQAS_machine_list" value="{{value.ModelName}}">{{ value.ModelName }}</option>
+							</select>
+						</div>
+						<div  class="col-md-3 col-sm-3 col-xs-12">
+							<select id="tool6" name="tool6" multiple="multiple" class="3col active">
+								<option ng-repeat="(key,value) in Ctrl.EQAS_tool_list" value="{{value.EqName}}">{{ value.EqName }}</option>
+							</select>
+						</div>
+						<div  class="col-md-5 col-sm-5 col-xs-12">
+							<select id="alm6" name="alm6" multiple="multiple" class="3col active">
+								<option ng-repeat="(key,value) in Ctrl.EQAS_alm_list" value="{{value.ALID}}">{{ value.ALID }} - {{ value.MESSAGE }}</option>
+							</select>
+						</div>
+						<div class="col-md-1 col-sm-1 col-xs-12">
+							<button class="btn btn-primary" type="button" ng-click="Ctrl.ErrorProofDraw('5')" >Draw</button>
+						</div>
+						<div class="col-md-12 col-sm-12 col-xs-12">
+							<div class="box box-solid " >
+								<div class="box-header">
+									<i class="fa fa-area-chart"></i>
+									<h3 style="font-weight:bold" class="box-title"><b/><?php/* echo "<span style='color:blue;'>5 - EQAS - Multiple Tool</span> - Alarm Chart - 目前更新時程 : 每日早上 7 : 30";*/ ?></b></h3>
+									<div class="box-tools pull-right">
+										<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+									</div>
+								</div>
+								<div class="box-body">
+									<div style="min-height:290px;">
+										<div id='chartDiv5' style="width:100%;"></div>
+									</div>
+								</div>
+							</div>
+						</div>-->
+					<!---->
+						<!--<div  class="col-md-5 col-sm-5 col-xs-12">
+							<select id="tool4" name="tool4" multiple="multiple" class="3col active">
+								<option ng-repeat="(key,value) in Ctrl.tool_list" value="{{value.EqName}}">{{ value.EqName }}</option>
+							</select>
+						</div>
+						<div  class="col-md-5 col-sm-5 col-xs-12">
+							<select id="alm4" name="alm4" multiple="multiple" class="3col active">
+								<option ng-repeat="(key,value) in Ctrl.alm_list" value="{{value.ALID}}">{{ value.ALID }} - {{ value.MESSAGE }}</option>
+							</select>
+						</div>
+						<div class="col-md-2 col-sm-2 col-xs-12">
+							<button class="btn btn-primary" type="button" ng-click="Ctrl.ErrorProof('3')" >Draw</button>
+						</div>
+						<div class="col-md-12 col-sm-12 col-xs-12">
+							<div class="box box-solid " >
+								<div class="box-header">
+									<i class="fa fa-area-chart"></i>
+									<h3 style="font-weight:bold" class="box-title"><b/><?php /*echo "<span style='color:blue;'>[TEST]Multiple Tool</span> - Chart";*/ ?></b></h3>
+									<div class="box-tools pull-right">
+	
+										<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+									</div>
+								</div>
+								<div class="box-body">
+									<div style="min-height:290px;">
+										<div id='chartDiv3' style="width:100%;"></div>
+									</div>
+								</div>
+							</div>
+						</div>-->
+					</div>
+				</div>
+				<div class="overlay" ng-if="Ctrl.Load">
+					<i class="fa fa-refresh fa-spin"></i>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="row">
+		<div  class="col-md-12 col-sm-12 col-xs-12">
+			<div class="alert alert-danger" role="alert">
+				<h5 style="font-weight:bold"> 如遇任何資料問題請撥 LT2/SP 簡廷寬 #25205</h5>
+			</div>
+		</div>
+		<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+			<div style="width:100%;" class="box box-solid" >
+				<div class="box-header">
+					<i class="fa fa-table"></i>
+					<h3 class="box-title">Rule :</h3>
+					<div class="box-tools pull-right">
+						<button type="button" class="btn btn-default btn-sm" data-widget="collapse"><i class="fa fa-minus"></i></button>
+					</div>
+				</div>
+				<div class="box-body">
+					<div class="col-md-12">
+						<div class="box box-solid">
+							<!--<div class="box-header with-border">
+							<h3 class="box-title">Collapsible Accordion</h3>
+							</div>-->
+							<!-- /.box-header -->
+							<div class="box-body">
+								<div class="box-group" id="accordion">
+									<div class="panel box box-danger">
+										<div class="box-header with-border">
+											<h4 class="box-title">
+											<a data-toggle="collapse" data-parent="#accordion" href="#collapse" class="collapsed" aria-expanded="false">
+												WPD Summary
+											</a>
+											</h4>
+										</div>
+										<div id="collapse" class="panel-collapse collapse" aria-expanded="false">
+											<div class="box-body">
+											更新時間 : 每日早上 7 : 30<br>
+											時間區間 : 00:00:00 - 24:00:00<br>
+											SCN WPH : From SCN Lotreport | 公式 :  ( Wafer 1 曝光開始 ~ Last Wafer 曝光結束的時間 ) / Lotsize <br>
+											SCN WPD : WPH * 24 * (ProdTime%)<br>
+											TRACK WPH : From AGC System | 公式 :  ( Wafer 1 開始 ~ Last Wafer 結束的時間 ) / Lotsize <br>
+											TRACK WPD : WPH * 24 * (ProdTime%) <br>
+											只納入每批15片以上的 Lot
+											</div>
+										</div>
+									</div>
+									<div class="panel box box-primary">
+										<div class="box-header with-border">
+											<h4 class="box-title">
+											<a data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="false" class="collapsed">
+												1 - Alarm Chart
+											</a>
+											</h4>
+										</div>
+										<div id="collapseOne" class="panel-collapse collapse" aria-expanded="true" style="height: 0px;">
+											<div class="box-body">
+											更新時間 : 每日早上 7 : 30  ( SCN - MX-ACT. 、 SCN - STOP Queue 為 早上 9 : 30 )<br>
+											時間區間 : 07:20:00 - 隔日 07:20:00<br>
+											資料來自 : AGC System 、 SCN Eventlog
+											</div>
+										</div>
+									</div>
+									<div class="panel box box-primary">
+										<div class="box-header with-border">
+											<h4 class="box-title">
+											<a data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" class="collapsed" aria-expanded="false">
+												2 - Lost Time Chart
+											</a>
+											</h4>
+										</div>
+										<div id="collapseTwo" class="panel-collapse collapse" aria-expanded="false">
+											<div class="box-body">
+											更新時間 : 每日早上 7 : 30 、 MOVE DT 為早上 10 : 00<br>
+											時間區間 : 07:20:00 - 隔日 07:20:00<br>
+											資料來自 : AGC System 、 SCN Eventlog 、 ESI
+											</div>
+										</div>
+									</div>
+									<div class="panel box box-primary">
+										<div class="box-header with-border">
+											<h4 class="box-title">
+											<a data-toggle="collapse" data-parent="#accordion" href="#collapseThree" class="collapsed" aria-expanded="false">
+												3 - Track WPH Chart
+											</a>
+											</h4>
+										</div>
+										<div id="collapseThree" class="panel-collapse collapse" aria-expanded="false">
+											<div class="box-body">
+											更新時間 : 每30分鐘一次<br>
+											TRACK WPH : From AGC System | 公式 :  ( Wafer 1 開始 ~ Last Wafer 結束的時間 ) / Lotsize <br>
+											只納入每批15片以上的 Lot<br>
+											只納入 AGC WPH 不為 0 的 Lot<br>
+											PJ Lot 不納入計算
+											</div>
+										</div>
+									</div>
+									<div class="panel box box-primary">
+										<div class="box-header with-border">
+											<h4 class="box-title">
+											<a data-toggle="collapse" data-parent="#accordion" href="#collapseFour" class="collapsed" aria-expanded="false">
+												4 - Scanner WPH Chart
+											</a>
+											</h4>
+										</div>
+										<div id="collapseFour" class="panel-collapse collapse" aria-expanded="false">
+											<div class="box-body">
+											更新時間 : 每日早上 7 : 30<br>
+											SCN WPH : From SCN Lotreport | 公式 :  ( Wafer 1 曝光開始 ~ Last Wafer 曝光結束的時間 ) / Lotsize <br>
+											只納入每批15片以上的 Lot
+											</div>
+										</div>
+									</div>
+									<div class="panel box box-primary">
+										<div class="box-header with-border">
+											<h4 class="box-title">
+											<a data-toggle="collapse" data-parent="#accordion" href="#collapseFive" class="collapsed" aria-expanded="false">
+												5 - Single Recipe Compare Chart
+											</a>
+											</h4>
+										</div>
+										<div id="collapseFive" class="panel-collapse collapse" aria-expanded="false">
+											<div class="box-body">
+											選擇 Recipe 後 ， 會帶出相同 Recipe 的 Lot (In Tool) ， 然後再選擇要比較的機台即可<br>
+											* COMBINE Chart 選擇 Recipe 後，請再選擇 Track Recipe ， 才會帶出相同 Recipe 的 Lot (In Tool)<br>
+											</div>
+										</div>
+									</div>
+									
+								</div>
+							</div>
+							<!-- /.box-body -->
+						</div>
+						<!-- /.box -->
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<?php require_once("include/footer.php"); ?>
