@@ -1,0 +1,901 @@
+  <?php
+	set_time_limit(360);
+  ini_set('memory_limit', '512M');
+  date_default_timezone_set("Asia/Taipei");
+/**
+ * Alignment Map API
+ */
+require_once("DBClass.php");
+require_once("../include/MSDatabase_MNT.php");
+require_once("../include/MSDatabase_MNT_p12.php");
+require_once("../include/MSDatabase_status_NC.php");
+
+class THROUGHPUT_Class extends Mysql_DBClass
+{
+  private $objDB;
+  private $MS_objDB;
+  private $GET_DATA_WEEK;
+  private $GET_DATA_HOUR;
+  private $GET_DATA_MINUTE;
+  private $track_wph_table;
+  function __construct(){
+    $this->objDB                = new Mysql_DBClass();
+    $this->objDB->db            = "track";
+    $this->objDB_scanner             = new Mysql_DBClass();
+
+    $this->Ms_objDB             = new MSDatabase();
+    $this->Ms_objDB_p12         = new MSDatabase_P12();
+    $this->Ms_objDB_status      = new MSDatabase_STATUS_NC();
+    $this->GET_DATA_WEEK      = '3' ;
+    $this->GET_DATA_HOUR      = '7' ;
+    $this->GET_DATA_MINUTE      = '20' ;
+    $this->DRY = "'ASCAN-02','ASCAN-03','ASCAN-04','ASCAN-07','ASCAN-09','ASCAN-B04'";
+    $this->DRY_TK = "'ATK-02','ATK-03','ATK-04','ATK-07','ATK-09','ATK-B04'";
+    $this->IMM = "'ASCAN-08','ASCAN-A01','ASCAN-A02','ASCAN-A03','ASCAN-A06','ASCAN-A07','ASCAN-A08','ASCAN-A09','ASCAN-A10','ASCAN-A11','ASCAN-A12','ASCAN-B01','ASCAN-B02','ASCAN-B03','ASCAN-B05'";
+    $this->IMM_TK = "'ATK-08','ATK-A01','ATK-A02','ATK-A03','ATK-A06','ATK-A07','ATK-A08','ATK-A09','ATK-A10','ATK-A11','ATK-A12','ATK-B01','ATK-B02','ATK-B03','ATK-B05'";
+    $this->track_wph_table = 'throughput_wpr';
+  }
+  // public function Get_Tool_Data(){
+ 
+    
+  //   $sql = "SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi`  order by `EqName` asc" ;
+  //   $rs = $this->objDB->Recordset($sql);
+  //   $rows = $this->objDB->GetRows($rs);
+  //   return $rows;
+  // }
+  //速度待改善
+  // public function Get_Tool_Data_p12(){
+ 
+  //   $sql = "SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi_p12`  order by `EqName` asc" ;
+  //   $rs = $this->objDB->Recordset($sql);
+  //   $rows = $this->objDB->GetRows($rs);
+  //   return $rows;
+  // }
+
+  public function Get_Tool_Data_ALL(){
+    
+    // $tool_list_p12 = $this->Get_Tool_Data_p12();
+    // $tool_list_p58 = $this->Get_Tool_Data();
+
+    $sql = "SELECT * FROM ( SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi`  UNION SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi_p12` ) t1 WHERE t1.EqName != 'ATK-02' && t1.EqName != 'ATK-A02' && t1.EqName != 'ATK-B05' ORDER BY `EqName` ASC" ;
+    
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+    
+    return $rows;
+
+    // $rows = array_merge($tool_list_p12,$tool_list_p58);
+    
+    // return $rows;
+  } 
+
+  public function Get_Tool_Data_FOR_BARCTK(){
+    
+    // $tool_list_p12 = $this->Get_Tool_Data_p12();
+    // $tool_list_p58 = $this->Get_Tool_Data();
+
+    $sql = "SELECT * FROM ( SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi`  UNION SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi_p12` ) t1 WHERE (t1.EqName NOT LIKE '%ATK%' AND t1.EqName NOT LIKE '%KTK%' AND t1.EqName NOT LIKE '%ITK%') ORDER BY `EqName` ASC" ;
+    
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+    
+    return $rows;
+
+    // $rows = array_merge($tool_list_p12,$tool_list_p58);
+    
+    // return $rows;
+  } 
+
+  public function Get_Tool_Data_YS(){
+    
+    $sql = "SELECT * FROM `tool` WHERE UMC_Nr NOT IN( 'L1PH17','ASCAN-02','ASCAN-A02','ASCAN-B05','KSCAN-01','KSCAN-02','KSCAN-03' ) ORDER BY `UMC_Nr` ASC";
+    $rs = $this->objDB_scanner->Recordset($sql);
+    $rows = $this->objDB_scanner->GetRows($rs);
+    return  $rows;
+    
+  } 
+
+  public function Get_Alarm_Code(){
+ 
+    $sql = "SELECT `ALID`,`MESSAGE` FROM `agc_almid` WHERE VISIBLE = '1' ORDER BY ALID " ;
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+
+    return $rows;
+  }
+
+  public function Get_Alarm_Message($ALID){
+    $sql = "SELECT `ALID`,`MESSAGE`,`INIT_MESSAGE` FROM `agc_almid` WHERE ALID = '$ALID' " ;
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+    $message = $rows[0]['INIT_MESSAGE'];
+    return $message;
+  }
+
+  public function Get_Tool_Model($EqName){
+     $sql = "SELECT t1.ModelName FROM ( SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi`  UNION SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi_p12` ) t1 WHERE t1.EqName = '$EqName'" ;
+    
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+    
+    $ModelName = $rows[0]['ModelName'];
+
+    $ModelName = explode('/',$ModelName);
+
+    $ModelName = $ModelName[1];
+
+    return $ModelName;
+  }
+
+  public function Draw($tool_string,$alm_string,$INDEX,$COM_TYPE,$COM_OPTION1,$COM_OPTION2,$COM_OPTION3,$DATE){
+    // index = 0 : mutiple tool , index = 1 : single tool
+    $tool_string = explode(',',$tool_string);
+    $alm_string = explode(',',$alm_string);
+
+    $DATE = explode('-',$DATE);
+    $startDate = str_replace('/','-',trim($DATE[0]));
+    $endDate = str_replace('/','-',trim($DATE[1]));
+    $endDate = date("Y-m-d",strtotime("+1 day",strtotime($endDate)));
+    switch($INDEX){
+      case '0':
+        foreach($tool_string as $tool_index=>$tool_rows){
+          foreach($alm_string as $alm_index=>$alm_rows){
+            if($alm_rows == '0'){
+              $tool_rows = str_replace('BTK','BARCTK',$tool_rows);
+            }
+            // 升降溫 自動分辨model ， ACT 是 3602 ， LITHIUS 是 231 其他為 833
+            if($alm_rows == '833'){
+              $Model = $this->Get_Tool_Model($tool_rows);
+
+              switch($Model){
+                case 'ACT':
+                  $alm_rows = '3602';
+                break;
+                case 'LITHIUS':
+                  $alm_rows = '231';
+                break;
+              }
+            }
+
+            // 未來會刪除 暫時讓dummy 沒有ATK
+
+            $check_ATK = explode('-',$tool_rows);
+
+            if($alm_rows == '17' && ($check_ATK[0] == 'ATK' || $tool_rows == 'KTK-B01' || $tool_rows == 'KTK-B02' || $tool_rows == 'KTK-B03')){
+              $sql = "SELECT `ALID`,'0' as `VALUE` FROM `throughput_waste_chart` WHERE `EqName` = '$tool_rows' AND `ALID` = '$alm_rows' AND (`DATE` BETWEEN '$startDate' AND '$endDate')  ORDER BY `DATE` ASC , `EqName` ASC" ;
+            }else{
+              $sql = "SELECT `ALID`,round(`VALUE`/60,1) as `VALUE` FROM `throughput_waste_chart` WHERE `EqName` = '$tool_rows' AND `ALID` = '$alm_rows' AND (`DATE` BETWEEN '$startDate' AND '$endDate')  ORDER BY `DATE` ASC , `EqName` ASC" ;
+            }
+
+            
+
+            // $sql = "SELECT `ALID`,round(`VALUE`/60,1) as `VALUE` FROM `throughput_waste_chart` WHERE `EqName` = '$tool_rows' AND `ALID` = '$alm_rows' AND (`DATE` BETWEEN '$startDate' AND '$endDate')  ORDER BY `DATE` ASC , `EqName` ASC" ;
+            $rs = $this->objDB->Recordset($sql);
+            $rows = $this->objDB->GetRows($rs);
+            $message = $this->Get_Alarm_Message($alm_rows);
+            $chart[$tool_rows."(".$message.")"] = $this->_array_column($rows,'VALUE');
+            
+          }
+        }
+        $sql = "SELECT `DATE` FROM `throughput_waste_chart` WHERE  (`DATE` BETWEEN '$startDate' AND '$endDate') GROUP BY `DATE` ORDER BY `DATE` ASC " ;
+        $rs = $this->objDB->Recordset($sql);
+        $rows = $this->objDB->GetRows($rs);
+        $chart["DATE"] = $this->_array_column($rows,'DATE');
+      break;
+      case '1':
+         //自動跑這兩個code 0:downtime 1:move
+        array_push($alm_string,'1');
+        foreach($tool_string as $tool_index=>$tool_rows){
+          foreach($alm_string as $alm_index=>$alm_rows){
+            // ESI p12機台為BARCTK ， AGC 為 BTK
+            if($alm_rows == '1'){
+              $tool_rows = str_replace('BTK','BARCTK',$tool_rows);
+              $sql = "SELECT `ALID`,`VALUE` FROM `throughput_waste_chart` WHERE `EqName` = '$tool_rows' AND `ALID` = '$alm_rows' AND (`DATE` BETWEEN '$startDate' AND '$endDate') ORDER BY `DATE` ASC , `EqName` ASC" ;
+            }else{
+              if($alm_rows == '0'){
+                $tool_rows = str_replace('BTK','BARCTK',$tool_rows);
+              }
+
+              if($alm_rows == '833'){
+                $Model = $this->Get_Tool_Model($tool_rows);
+
+                switch($Model){
+                  case 'ACT':
+                    $alm_rows = '3602';
+                  break;
+                  case 'LITHIUS':
+                    $alm_rows = '231';
+                  break;
+                }
+              }
+              // 未來會刪除 暫時讓dummy 沒有ATK
+
+              $check_ATK = explode('-',$tool_rows);
+
+              if($alm_rows == '17' && ($check_ATK[0] == 'ATK' || $tool_rows == 'KTK-B01' || $tool_rows == 'KTK-B02' || $tool_rows == 'KTK-B03')){
+                
+                $sql = "SELECT `ALID`,'0' as `VALUE` FROM `throughput_waste_chart` WHERE `EqName` = '$tool_rows' AND `ALID` = '$alm_rows' AND (`DATE` BETWEEN '$startDate' AND '$endDate') ORDER BY `DATE` ASC , `EqName` ASC" ;
+              }else{
+                $sql = "SELECT `ALID`,round(`VALUE`/60,1) as `VALUE` FROM `throughput_waste_chart` WHERE `EqName` = '$tool_rows' AND `ALID` = '$alm_rows' AND (`DATE` BETWEEN '$startDate' AND '$endDate') ORDER BY `DATE` ASC , `EqName` ASC" ;
+              }
+
+              // $sql = "SELECT `ALID`,round(`VALUE`/60,1) as `VALUE` FROM `throughput_waste_chart` WHERE `EqName` = '$tool_rows' AND `ALID` = '$alm_rows' AND (`DATE` BETWEEN '$startDate' AND '$endDate') ORDER BY `DATE` ASC , `EqName` ASC" ;
+              
+            }
+            
+            $rs = $this->objDB->Recordset($sql);
+            $rows = $this->objDB->GetRows($rs);
+            $message = $this->Get_Alarm_Message($alm_rows);
+            $chart[$tool_rows."(".$message.")"] = $this->_array_column($rows,'VALUE');
+            
+          }
+        }
+        $sql = "SELECT * FROM `throughput_waste_chart` WHERE (`DATE` BETWEEN '$startDate' AND '$endDate') GROUP BY `DATE` ORDER BY `DATE` ASC " ;
+        $rs = $this->objDB->Recordset($sql);
+        $rows = $this->objDB->GetRows($rs);
+        $chart["DATE"] = $this->_array_column($rows,'DATE');
+      break;
+      // track wpr
+      case '2':
+
+        foreach($tool_string as $tool_index=>$tool_rows){
+            $sql = "SELECT WaferProcessRate,LotStartTime,LotName,FlwRcpName	 
+            FROM `$this->track_wph_table` 
+            WHERE `EqName` = '$tool_rows' 
+            AND WaferProcessRate != '0' 
+            AND RealNumWafer >= '15' 
+            AND (`LotStartTime` BETWEEN '$startDate' AND '$endDate') 
+            AND LotName NOT LIKE 'PJ-%'
+            ORDER BY `LotStartTime` ASC " ;
+            $rs = $this->objDB->Recordset($sql);
+            $rows = $this->objDB->GetRows($rs);
+            $chart['WPR'] = $this->_array_column($rows,'WaferProcessRate');
+            $chart["LotStartTime"] = $this->_array_column($rows,'LotStartTime');
+            $chart["LotName"] = $this->_array_column($rows,'LotName');
+            $chart["FlwRcpName"] = $this->_array_column($rows,'FlwRcpName');
+            $sql = "SELECT ROUND(AVG(WaferProcessRate),2) AS AVG_WPR 
+            FROM $this->track_wph_table 
+            WHERE `EqName` = '$tool_rows' 
+            AND WaferProcessRate != '0' 
+            AND RealNumWafer >= '15' 
+            AND (`LotStartTime` BETWEEN '$startDate' AND '$endDate') 
+            AND LotName NOT LIKE 'PJ-%'" ;
+            $rs = $this->objDB->Recordset($sql);
+            $rows = $this->objDB->GetRows($rs);
+            $chart["AVG"] = floatval($rows[0]['AVG_WPR']);
+
+            $chart["WPH_SPEC"] = $this->objDB->GetColName("WPH_SPEC","throughput_wpr_spec","EqName",$tool_rows);
+        }
+
+      break;
+      case '3':
+        foreach($tool_string as $tool_index=>$tool_rows){
+          foreach($alm_string as $alm_index=>$alm_rows){
+            $sql = "SELECT `ALID`,round(`VALUE`/60,1) as `VALUE` FROM `throughput_waste_chart` WHERE `EqName` = '$tool_rows' AND `ALID` = '$alm_rows' ORDER BY `DATE` ASC , `EqName` ASC" ;
+            $rs = $this->objDB->Recordset($sql);
+            $rows = $this->objDB->GetRows($rs);
+            $message = $this->Get_Alarm_Message($alm_rows);
+            $chart[$tool_rows."(".$message.")"] = $this->_array_column($rows,'VALUE');
+            
+          }
+        }
+        $sql = "SELECT * FROM `throughput_waste_chart` GROUP BY `DATE` ORDER BY `DATE` ASC " ;
+        $rs = $this->objDB->Recordset($sql);
+        $rows = $this->objDB->GetRows($rs);
+        $chart["DATE"] = $this->_array_column($rows,'DATE');
+      break;
+      // scanner wpr
+      case '4':
+        // 改bk
+        foreach($tool_string as $tool_index=>$tool_rows){
+          $sql = "SELECT WaferProcessRate,LotStartTime,LotName,Recipe,Layer,TRACK_Recipe FROM `throughput_wpr_scanner` WHERE `EqName` = '$tool_rows' AND WaferProcessRate != '0' AND RealNumWafer >= '15' AND (`LotStartTime` BETWEEN '$startDate' AND '$endDate') ORDER BY `LotStartTime` ASC " ;
+          $rs = $this->objDB->Recordset($sql);
+          $rows = $this->objDB->GetRows($rs);
+          $chart['WPR'] = $this->_array_column($rows,'WaferProcessRate');
+          $chart["LotStartTime"] = $this->_array_column($rows,'LotStartTime');
+          $chart["LotName"] = $this->_array_column($rows,'LotName');
+          $chart["Recipe"] = $this->_array_column($rows,'Recipe');
+          $chart["Layer"] = $this->_array_column($rows,'Layer');
+          // $chart["TRACK_Recipe"] = $this->_array_column($rows,'TRACK_Recipe');
+          $sql = "SELECT ROUND(AVG(WaferProcessRate),2) AS AVG_WPR FROM throughput_wpr_scanner WHERE `EqName` = '$tool_rows' AND WaferProcessRate != '0' AND RealNumWafer >= '15' AND (`LotStartTime` BETWEEN '$startDate' AND '$endDate')" ;
+          $rs = $this->objDB->Recordset($sql);
+          $rows = $this->objDB->GetRows($rs);
+          $chart["AVG"] = floatval($rows[0]['AVG_WPR']);
+
+          $tool_rows = str_replace('SCAN','TK',$tool_rows);
+          $chart["WPH_SPEC"] = $this->objDB->GetColName("WPH_SPEC","throughput_wpr_spec","EqName",$tool_rows);
+        }
+
+      break;
+      // EQAS
+      case '5':
+        foreach($tool_string as $tool_index=>$tool_rows){
+          foreach($alm_string as $alm_index=>$alm_rows){
+            $sql = "SELECT `ALID`,round(`VALUE`/60,1) as `VALUE` FROM `throughput_waste_chart` WHERE `EqName` = '$tool_rows' AND `ALID` = '$alm_rows' ORDER BY `DATE` ASC , `EqName` ASC" ;
+            $rs = $this->objDB->Recordset($sql);
+            $rows = $this->objDB->GetRows($rs);
+            $message = $this->Get_Alarm_Message($alm_rows);
+            $chart[$tool_rows."(".$message.")"] = $this->_array_column($rows,'VALUE');
+            
+          }
+        }
+        $sql = "SELECT * FROM `throughput_waste_chart` GROUP BY `DATE` ORDER BY `DATE` ASC " ;
+        $rs = $this->objDB->Recordset($sql);
+        $rows = $this->objDB->GetRows($rs);
+        $chart["DATE"] = $this->_array_column($rows,'DATE');
+      break;
+      // comp
+      case '6':
+
+        if($COM_OPTION2 == 'WPH')
+          $FACTOR = 'WaferProcessRate' ;
+        else
+          $FACTOR = $COM_OPTION2 ;
+
+        if($COM_TYPE == '0')
+          $table = $this->track_wph_table;
+        else if($COM_TYPE == '1')
+          $table = 'throughput_wpr_scanner';
+
+        if($COM_TYPE == '0' || $COM_TYPE == '1'){
+
+          foreach($tool_string as $tool_index=>$tool_rows){
+
+            $sql =  "SELECT $FACTOR,LotStartTime,LotName,FlwRcpName,EqName,RealNumWafer,WaferProcessRate FROM $table WHERE `EqName` = '$tool_rows' AND `FlwRcpName` = '$COM_OPTION1' AND (`LotStartTime` BETWEEN '$startDate' AND '$endDate') AND WaferProcessRate != '0' ORDER BY `LotStartTime` ASC" ;
+
+            $rs = $this->objDB->Recordset($sql);
+            $rows = $this->objDB->GetRows($rs);
+
+            $chart["$COM_OPTION2(".$tool_rows.")"] = $this->_array_column($rows,$FACTOR);
+            $chart["LotStartTime(".$tool_rows.")"] = $this->_array_column($rows,'LotStartTime');
+            $chart["EqName(".$tool_rows.")"] = $this->_array_column($rows,'EqName');	
+            $chart["LotName(".$tool_rows.")"] = $this->_array_column($rows,'LotName');
+            $chart["RealNumWafer(".$tool_rows.")"] = $this->_array_column($rows,'RealNumWafer');
+
+          }
+
+        }else{
+
+          foreach($tool_string as $tool_index=>$tool_rows){
+
+            $sql =  "SELECT 
+
+                  t1.$FACTOR as SCN_$FACTOR,
+                  t1.LotStartTime as SCN_LotStartTime,
+                  t1.EqName as SCN_EqName,
+                  t1.LotName as SCN_LotName,
+                  t1.RealNumWafer as SCN_RealNumWafer,
+                  t1.FlwRcpName as SCN_FlwRcpName,
+
+                  t2.$FACTOR as TK_$FACTOR,
+                  t2.WaferProcessRate,
+                  t2.LotStartTime as TK_LotStartTime,
+                  t2.EqName as TK_EqName,
+                  t2.LotName as TK_LotName,
+                  t2.RealNumWafer as TK_RealNumWafer,
+                  t2.FlwRcpName as TK_FlwRcpName
+
+                  FROM 
+                  `throughput_wpr_scanner` t1,
+                  `$this->track_wph_table` t2,
+                  `throughput_wpr_combine` t3 
+                  
+                  WHERE
+                  t2.WaferProcessRate != '0' AND
+                  t1.EqName = '$tool_rows' AND
+                  t1.FlwRcpName = '$COM_OPTION1' AND
+                  t2.FlwRcpName = '$COM_OPTION3' AND
+                  t3.TRACK_WPH_ID = t2.id AND 
+                  t3.SCN_WPH_ID = t1.id AND 
+                  (t2.LotStartTime BETWEEN '$startDate' AND '$endDate')
+                  ORDER BY t2.LotStartTime ASC";
+
+
+            $rs = $this->objDB->Recordset($sql);
+            $rows = $this->objDB->GetRows($rs);
+
+            $chart["TK_$COM_OPTION2(".$tool_rows.")"] = $this->_array_column($rows,"TK_$FACTOR");
+            $chart["TK_LotStartTime(".$tool_rows.")"] = $this->_array_column($rows,'TK_LotStartTime');
+            $chart["TK_EqName(".$tool_rows.")"] = $this->_array_column($rows,'TK_EqName');	
+            $chart["TK_LotName(".$tool_rows.")"] = $this->_array_column($rows,'TK_LotName');
+            $chart["TK_RealNumWafer(".$tool_rows.")"] = $this->_array_column($rows,'TK_RealNumWafer');
+
+            $chart["SCN_$COM_OPTION2(".$tool_rows.")"] = $this->_array_column($rows,"SCN_$FACTOR");
+            $chart["SCN_LotStartTime(".$tool_rows.")"] = $this->_array_column($rows,'SCN_LotStartTime');
+            $chart["SCN_EqName(".$tool_rows.")"] = $this->_array_column($rows,'SCN_EqName');	
+            $chart["SCN_LotName(".$tool_rows.")"] = $this->_array_column($rows,'SCN_LotName');
+            $chart["SCN_RealNumWafer(".$tool_rows.")"] = $this->_array_column($rows,'SCN_RealNumWafer');
+
+          }
+
+        }
+
+        
+      break;
+      // WPD Summary
+      case '7':
+
+            switch($COM_TYPE){
+              case 'ASCAN' :
+                if($COM_OPTION1 == 'DRY'){
+                  $prod_time = $this->objDB->GetCol2Name('ProdTIme','throughput_wpr_prodtime_spec','EQP_TYPE','ASCAN','MACHINE_TYPE','DRY');
+                }else{
+                  $prod_time = $this->objDB->GetCol2Name('ProdTIme','throughput_wpr_prodtime_spec','EQP_TYPE','ASCAN','MACHINE_TYPE','IMM');
+                }
+              break;
+              case 'KSCAN' :
+                $prod_time = $this->objDB->GetColName('ProdTIme','throughput_wpr_prodtime_spec','EQP_TYPE','KSCAN');
+              break;
+              case 'BTK' :
+                $prod_time = $this->objDB->GetColName('ProdTIme','throughput_wpr_prodtime_spec','EQP_TYPE','BTK');
+              break;
+              case 'ITK' :
+                $prod_time = $this->objDB->GetColName('ProdTIme','throughput_wpr_prodtime_spec','EQP_TYPE','ITK');
+              break;
+            }
+
+
+            $CHART_SELECT = "`DATE`,ROUND(SUM(`WPH`)*24*$prod_time,1) as WPD";
+            $CHART_TABLE = "`throughput_wpr_daily_chart`";
+            $CHART_WHERE_DATE = "(`DATE` BETWEEN '$startDate' AND '$endDate')";
+            $CHART_WHERE_EqName_BTK = "(EqName like '%$COM_TYPE%' or EqName like '%BARCTK%' or EqName like '%PITK%' or EqName like '%PMTK%')";
+            $CHART_WHERE_EqName = "EqName like '%$COM_TYPE%'";
+            $CHART_WHERE_EqName_DRY = "EqName IN($this->DRY)";
+            $CHART_WHERE_EqName_IMM = "EqName IN($this->IMM)";
+            $CHART_WHERE_EqName_DRY_TK = "EqName IN($this->DRY_TK)";
+            $CHART_WHERE_EqName_IMM_TK = "EqName IN($this->IMM_TK)";
+
+            if($COM_TYPE == 'BTK'){
+
+              $CHART_WHERE_EqName_TK = $CHART_WHERE_EqName_BTK;
+
+            }else if($COM_TYPE == 'ASCAN' || $COM_TYPE == 'KSCAN'){
+              
+              // 先取得 SCAN WPH
+              if($COM_TYPE == 'ASCAN' && $COM_OPTION1 == 'DRY'){
+                
+                $CHART_WHERE_EqName_SCAN = $CHART_WHERE_EqName_DRY;
+                $CHART_WHERE_EqName_TK = $CHART_WHERE_EqName_DRY_TK;
+              }
+              else if($COM_TYPE == 'ASCAN' && $COM_OPTION1 == 'IMM'){
+                
+                $CHART_WHERE_EqName_SCAN = $CHART_WHERE_EqName_IMM;
+                $CHART_WHERE_EqName_TK = $CHART_WHERE_EqName_IMM_TK;
+              }
+              else{
+                $CHART_WHERE_EqName_SCAN = $CHART_WHERE_EqName;
+
+                $COM_TYPE2 = str_replace('SCAN','TK',$COM_TYPE);
+                $CHART_WHERE_EqName = "EqName like '%$COM_TYPE2%'";
+                $CHART_WHERE_EqName_TK = $CHART_WHERE_EqName;
+                
+              } 
+              // SCAN WPH SQL
+              $sql = "SELECT $CHART_SELECT FROM $CHART_TABLE WHERE $CHART_WHERE_DATE AND $CHART_WHERE_EqName_SCAN GROUP BY `DATE`  " ;
+              $rs = $this->objDB->Recordset($sql); $rows = $this->objDB->GetRows($rs);
+              $chart['WPD'."(".$COM_TYPE.")"] = $this->_array_column($rows,'WPD');
+
+              // SCAN的 AVG WPH
+              $sql_AVG1 = "SELECT ROUND(AVG(t1.WPD),2) AS AVG_WPR FROM (SELECT $CHART_SELECT FROM $CHART_TABLE WHERE  $CHART_WHERE_DATE AND $CHART_WHERE_EqName_SCAN  GROUP BY `DATE` ) as t1" ;
+              $rs_AVG1 = $this->objDB->Recordset($sql_AVG1); $rows_AVG1 = $this->objDB->GetRows($rs_AVG1);
+
+              $COM_TYPE = str_replace('SCAN','TK',$COM_TYPE);
+            }else{
+              $CHART_WHERE_EqName_TK = $CHART_WHERE_EqName;
+            }
+            
+            
+            // TK WPH SQL 
+            $sql = "SELECT $CHART_SELECT FROM $CHART_TABLE WHERE  $CHART_WHERE_DATE AND $CHART_WHERE_EqName_TK  GROUP BY `DATE`" ;
+            $rs = $this->objDB->Recordset($sql); $rows = $this->objDB->GetRows($rs);
+
+            $chart['WPD'."(".$COM_TYPE.")"] = $this->_array_column($rows,'WPD');
+            $chart["DATE"] = $this->_array_column($rows,'DATE');
+
+            // TK AVG
+            $sql = "SELECT ROUND(AVG(t1.WPD),2) AS AVG_WPR FROM (SELECT $CHART_SELECT FROM  $CHART_TABLE WHERE $CHART_WHERE_DATE AND $CHART_WHERE_EqName_TK  GROUP BY `DATE` ) as t1" ;
+            $rs = $this->objDB->Recordset($sql);
+            $rows = $this->objDB->GetRows($rs);
+
+            $chart["AVG0"] = floatval($rows[0]['AVG_WPR']);
+            
+            if($COM_TYPE == 'ATK' || $COM_TYPE == 'KTK'){
+              $chart["AVG1"] = floatval($rows_AVG1[0]['AVG_WPR']);
+            }
+      break;
+      default:
+      break;
+    }
+
+    return $chart;
+  }
+  
+  function _array_column(array $array, $column_key, $index_key = null)
+  {
+      $result = array();
+      foreach ($array as $arr) {
+          if (!is_array($arr)) {
+              continue;
+          }
+
+          if (is_null($column_key)) {
+              $value = $arr;
+          } else {
+              $value = $arr[$column_key];
+          }
+
+          if (!is_null($index_key)) {
+              $key          = $arr[$index_key];
+              $result[$key] = $value;
+          } else {
+              $result[] = $value;
+          }
+      }
+      return $result;
+  }
+ 
+  public function Get_EQAS_MACHINE_LIST($EQAS_eqp_type){
+ 
+
+    $sql = "SELECT * FROM (SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi`  UNION SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi_p12`) as t1 WHERE t1.eq = '$EQAS_eqp_type' GROUP BY t1.ModelName ORDER BY t1.ModelName" ;
+    
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+    
+    return $rows;
+
+
+  }
+
+  public function Get_EQAS_Tool_Data($EQAS_machine_type,$EQAS_eqp_type){
+ 
+
+    $sql = "SELECT * FROM (SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi`  UNION SELECT EquipIndex,EqName,eq,ModelName FROM `agc_eqpi_p12`) as t1 WHERE t1.eq = '$EQAS_eqp_type' AND t1.ModelName = '$EQAS_machine_type' ORDER BY t1.EqName" ;
+    
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+    
+    return $rows;
+
+
+  }
+
+  public function Get_EQAS_Alm_Data($EQAS_machine_type,$EQAS_eqp_type){
+ 
+
+    $sql = "SELECT * FROM eqas_option WHERE eq = '$EQAS_eqp_type' AND ModelName = '$EQAS_machine_type' ORDER BY `ALID`" ;
+    
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+    
+    return $rows;
+
+
+  }
+
+
+  public function GET_COM_PPID($tool){
+ 
+    $type = explode('-',$tool);
+    $type = $type[0];
+
+    if($type == 'ASCAN' || $type == 'KSCAN' ){
+      $sql = "SELECT FlwRcpName FROM throughput_wpr_scanner WHERE `EqName` = '$tool' GROUP BY `FlwRcpName` ORDER BY `FlwRcpName` ASC" ;
+    }else{
+      $sql = "SELECT FlwRcpName FROM $this->track_wph_table WHERE `EqName` = '$tool' GROUP BY `FlwRcpName` ORDER BY `FlwRcpName` ASC" ;
+    }
+    
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+    
+    return $rows;
+
+  }
+
+  public function GET_COM_PPID_TRACK($tool,$PPID){
+ 
+
+    $sql =  "SELECT 
+            t1.EqName as SCN_EqName,
+            t2.FlwRcpName as FlwRcpName,
+            t1.FlwRcpName as SCN_FlwRcpName
+
+            FROM 
+
+            `throughput_wpr_scanner` t1,
+            `$this->track_wph_table` t2,
+            `throughput_wpr_combine` t3 
+
+            WHERE
+
+            t3.TRACK_WPH_ID = t2.id AND 
+            t3.SCN_WPH_ID = t1.id AND
+            t1.EqName = '$tool' AND
+            t1.FlwRcpName = '$PPID' 
+
+            GROUP BY FlwRcpName
+
+            ORDER BY FlwRcpName ASC";
+    
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+    
+    return $rows;
+
+  }
+
+  public function GET_COM_TOOL($RECIPE,$TK_RECIPE,$TYPE){
+
+
+    if($TYPE == '0' ){
+      $sql = "SELECT EqName FROM $this->track_wph_table WHERE `FlwRcpName` = '$RECIPE' GROUP BY `EqName` ORDER BY `EqName` ASC" ;
+    }else if($TYPE == '1'){
+      $sql = "SELECT EqName FROM throughput_wpr_scanner WHERE `FlwRcpName` = '$RECIPE' GROUP BY `EqName` ORDER BY `EqName` ASC" ;
+    }else{
+      $sql =  "SELECT 
+
+              t1.EqName as EqName,
+              t2.FlwRcpName as FlwRcpName,
+              t1.FlwRcpName as SCN_FlwRcpName
+
+              FROM
+
+              `throughput_wpr_scanner` t1,
+              `$this->track_wph_table` t2,
+              `throughput_wpr_combine` t3 
+
+              WHERE
+
+              t3.TRACK_WPH_ID = t2.id AND 
+              t3.SCN_WPH_ID = t1.id AND 
+              t1.FlwRcpName = '$RECIPE' AND 
+              t2.FlwRcpName = '$TK_RECIPE' 
+
+              GROUP BY EqName
+
+              ORDER BY EqName ASC";
+    }
+
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+    
+    return $rows;
+
+  }
+
+  public function GET_WPH_TABLE($type){
+
+    switch($type){
+      case 'ASCAN_DRY' :
+        $prod_time = $this->objDB->GetCol2Name('ProdTIme','throughput_wpr_prodtime_spec','EQP_TYPE','ASCAN','MACHINE_TYPE','DRY');
+      break;
+      case 'ASCAN_IMM' :
+        $prod_time = $this->objDB->GetCol2Name('ProdTIme','throughput_wpr_prodtime_spec','EQP_TYPE','ASCAN','MACHINE_TYPE','IMM');
+      break;
+      case 'KSCAN' :
+        $prod_time = $this->objDB->GetColName('ProdTIme','throughput_wpr_prodtime_spec','EQP_TYPE','KSCAN');
+      break;
+      case 'BTK' :
+        $prod_time = $this->objDB->GetColName('ProdTIme','throughput_wpr_prodtime_spec','EQP_TYPE','BTK');
+      break;
+      case 'ITK' :
+        $prod_time = $this->objDB->GetColName('ProdTIme','throughput_wpr_prodtime_spec','EQP_TYPE','ITK');
+      break;
+    }
+
+    // 可能會變
+    $SELECT = "EqName,
+      Model,
+      WPD_SPEC,
+      WPH_SPEC,
+      ROUND(Yesterday,2) as Yesterday,
+      ROUND(SevenDayAvg,2) as SevenDayAvg,
+      ROUND(ThirtyDayAvg,2) as ThirtyDayAvg,
+      Yesterday_Flag,
+      SevenDay_Flag,
+      ThirtyDay_Flag";
+
+    // 不會變
+    $SELECT_COMMON = $SELECT;
+
+    $SELECT_SUMMARY = "'Summary',
+      '',
+      SUM(WPD_SPEC) as WPD_SPEC,
+      '',
+      ROUND(SUM(Yesterday)*24*$prod_time,2) as Yesterday,
+      ROUND(SUM(SevenDayAvg)*24*$prod_time,2) as SevenDayAvg,
+      ROUND(SUM(ThirtyDayAvg)*24*$prod_time,2) as ThirtyDayAvg,
+      '',
+      '',
+      ''";
+
+    $FROM = "throughput_wpr_table";
+
+    if($type == 'BTK'){
+
+      $FROM = "throughput_wpr_table";
+      $WHERE = "(EqName like '%$type%' or EqName like '%BARCTK%' or EqName like '%PITK%' or EqName like '%PMTK%')";
+
+    }else if($type == 'ASCAN_DRY' || $type == 'ASCAN_IMM' || $type == 'KSCAN'){
+
+
+
+      $SELECT = "
+      t1.EqName,
+      t1.Model,
+      t1.WPD_SPEC,
+      t1.WPH_SPEC,
+      ROUND(t1.Yesterday,2) as Yesterday,
+      ROUND(t2.Yesterday,2) as TK_Yesterday,
+      ROUND(t1.SevenDayAvg,2) as SevenDayAvg,
+      ROUND(t2.SevenDayAvg,2) as TK_SevenDayAvg,
+      ROUND(t1.ThirtyDayAvg,2) as ThirtyDayAvg,
+      ROUND(t2.ThirtyDayAvg,2) as TK_ThirtyDayAvg,
+      t1.Yesterday_Flag as Yesterday_Flag,
+      t2.Yesterday_Flag as TK_Yesterday_Flag,
+      t1.SevenDay_Flag as SevenDay_Flag,
+      t2.SevenDay_Flag as TK_SevenDay_Flag,
+      t1.ThirtyDay_Flag as ThirtyDay_Flag,
+      t2.ThirtyDay_Flag as TK_ThirtyDay_Flag";
+
+      $SELECT_COMMON .= ",SUBSTRING_INDEX(EqName,'-',-1) as EQ_INDEX";
+
+      $SELECT_SUMMARY = "
+      'Summary',
+      '',
+      SUM(t1.WPD_SPEC) as WPD_SPEC,
+      '',
+      ROUND(SUM(t1.Yesterday)*24*$prod_time,2) as Yesterday,
+      ROUND(SUM(t2.Yesterday)*24*$prod_time,2) as TK_Yesterday,
+      ROUND(SUM(t1.SevenDayAvg)*24*$prod_time,2) as SevenDayAvg,
+      ROUND(SUM(t2.SevenDayAvg)*24*$prod_time,2) as TK_SevenDayAvg,
+      ROUND(SUM(t1.ThirtyDayAvg)*24*$prod_time,2) as ThirtyDayAvg,
+      ROUND(SUM(t2.ThirtyDayAvg)*24*$prod_time,2) as TK_ThirtyDayAvg,
+      '',
+      '',
+      '',
+      '',
+      '',
+      ''";
+
+      if($type == 'ASCAN_DRY' || $type == 'ASCAN_IMM'){
+        $type2 = explode('_',$type);
+        $type = $type2[0];
+        $type2 = $type2[1];
+      }
+
+      $tmp_type = str_replace('SCAN','TK',$type);
+
+      $FROM = "(SELECT $SELECT_COMMON FROM $FROM WHERE `EqName` like '%$type%' ) as t1  , 
+                (SELECT  $SELECT_COMMON FROM $FROM WHERE `EqName` like '%$tmp_type%' ) as t2 ";
+
+      if($type2 == 'DRY'){
+        
+        $WHERE = "t1.EQ_INDEX = t2.EQ_INDEX AND t1.EqName IN($this->DRY)";
+      }else if($type2 == 'IMM'){
+        
+        $WHERE = "t1.EQ_INDEX = t2.EQ_INDEX AND t1.EqName IN($this->IMM)";
+      }else{
+        $WHERE = "t1.EQ_INDEX = t2.EQ_INDEX";
+      }
+      
+
+    }else{
+
+      $FROM = "throughput_wpr_table";
+      $WHERE = "EqName like '%$type%'";
+    }
+
+      $sql = "SELECT $SELECT
+      FROM $FROM 
+      WHERE $WHERE
+      UNION ALL 
+      SELECT 
+      $SELECT_SUMMARY
+      FROM $FROM 
+      WHERE $WHERE " ;
+
+    
+    $rs = $this->objDB->Recordset($sql);
+    $rows = $this->objDB->GetRows($rs);
+
+    return $rows;
+
+  }
+
+  public function TEST(){
+    $last_time = $this->objDB->GetColName("datetime","mnt_time","id","1");
+
+    $data = date("Y-m-d H:i:s",strtotime("-1 hours",strtotime($last_time)));
+
+    return $data ;
+  }
+}
+
+// $obj     = new THROUGHPUT_Class();
+// $call = $obj->TEST();
+// print_r('<pre>');
+// print_r($call);
+// print_r('</pre>');
+
+if($_SERVER['REQUEST_METHOD'] == 'POST' && empty($_POST)){
+  $obj     = new THROUGHPUT_Class();
+  $request = json_decode(file_get_contents('php://input'),true);
+	$func    = $request["func"];
+
+  switch( $func ){
+    case "Get_Tool_Data_ALL":
+      $data = $obj->Get_Tool_Data_ALL();
+      print_r(json_encode($data));
+    break;
+    case "Get_Tool_Data_FOR_BARCTK":
+      $data = $obj->Get_Tool_Data_FOR_BARCTK();
+      print_r(json_encode($data));
+    break;
+    case "Get_Tool_Data_YS":
+      $data = $obj->Get_Tool_Data_YS();
+      print_r(json_encode($data));
+    break;
+    case "Get_Alarm_Code":
+      $data = $obj->Get_Alarm_Code();
+      print_r(json_encode($data));
+    break;
+    case "Get_EQAS_MACHINE_LIST":
+      $EQAS_eqp_type = trim($request["EQAS_eqp_type"]);
+      $data = $obj->Get_EQAS_MACHINE_LIST($EQAS_eqp_type);
+      print_r(json_encode($data));
+    break;
+    case "Get_EQAS_Tool_Data":
+      $EQAS_machine_type = trim($request["EQAS_machine_type"]);
+      $EQAS_eqp_type = trim($request["EQAS_eqp_type"]);
+      $data = $obj->Get_EQAS_Tool_Data($EQAS_machine_type,$EQAS_eqp_type);
+      print_r(json_encode($data));
+    break;
+    case "Get_EQAS_Alm_Data":
+      $EQAS_machine_type = trim($request["EQAS_machine_type"]);
+      $EQAS_eqp_type = trim($request["EQAS_eqp_type"]);
+      $data = $obj->Get_EQAS_Alm_Data($EQAS_machine_type,$EQAS_eqp_type);
+      print_r(json_encode($data));
+    break;
+    case "Draw":
+      $tool_string = trim($request["tool_string"]);
+      $alm_string = trim($request["alm_string"]);
+      $INDEX = trim($request["INDEX"]);
+      $COM_TYPE = trim($request["COM_TYPE"]);
+      $COM_OPTION1 = trim($request["COM_OPTION1"]);
+      $COM_OPTION2 = trim($request["COM_OPTION2"]);
+      $COM_OPTION3 = trim($request["COM_OPTION3"]);
+      $DATE = trim($request["DATE"]);
+      $data = $obj->Draw($tool_string,$alm_string,$INDEX,$COM_TYPE,$COM_OPTION1,$COM_OPTION2,$COM_OPTION3,$DATE);
+      print_r(json_encode($data));
+    break;
+    break;
+    case "GET_COM_PPID":
+      $tool = trim($request["tool"]);
+      $data = $obj->GET_COM_PPID($tool);
+      print_r(json_encode($data));
+    break;
+    case "GET_COM_PPID_TRACK":
+      $tool = trim($request["tool"]);
+      $PPID = trim($request["PPID"]);
+      $data = $obj->GET_COM_PPID_TRACK($tool,$PPID);
+      print_r(json_encode($data));
+    break;
+    case "GET_COM_TOOL":
+      $RECIPE = trim($request["RECIPE"]);
+      $TK_RECIPE = trim($request["TK_RECIPE"]);
+      $TYPE = trim($request["TYPE"]);
+      $data = $obj->GET_COM_TOOL($RECIPE,$TK_RECIPE,$TYPE);
+      print_r(json_encode($data));
+    break;
+    case "GET_WPH_TABLE":
+      $type = trim($request["type"]);
+      $data = $obj->GET_WPH_TABLE($type);
+      print_r(json_encode($data));
+    break;
+  }
+}
+
+
+
+?>
